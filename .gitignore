@@ -1,0 +1,26 @@
+# Dependencies
+resume-builder/node_modules/
+
+# Next.js build output
+resume-builder/.next/
+resume-builder/out/
+
+# Environment variables (never commit secrets)
+resume-builder/.env.local
+resume-builder/.env.*.local
+.env.local
+
+# TypeScript build info
+resume-builder/tsconfig.tsbuildinfo
+
+# Debug logs
+resume-builder/npm-debug.log*
+resume-builder/yarn-debug.log*
+resume-builder/yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Personal files
+*.pdf
