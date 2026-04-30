@@ -54,6 +54,21 @@ export interface LinkedInSuggestions {
   skills: string[];
 }
 
+export interface TipContext {
+  tip_index: number;
+  tip_text: string;
+  user_input: string;
+}
+
+export interface RegeneratePayload {
+  optimization_id: string;
+  cv_text: string;
+  job_description: string;
+  selected_keywords: string[];
+  tip_contexts: TipContext[];
+  general_context: string;
+}
+
 export interface Optimization {
   id: string;
   user_id: string;
@@ -70,6 +85,7 @@ export interface Optimization {
   cover_letter: string | null;
   linkedin_suggestions: LinkedInSuggestions | null;
   created_at: string;
+  regeneration_count?: number;
 }
 
 export interface UserCredits {

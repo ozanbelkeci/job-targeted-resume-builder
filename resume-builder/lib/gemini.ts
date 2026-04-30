@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { GeminiOptimizationResult, OptimizedCv, LinkedInSuggestions } from '@/types';
+import type { GeminiOptimizationResult, OptimizedCv, LinkedInSuggestions, TipContext } from '@/types';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -361,7 +361,9 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
   }
 
   // R3: bidirectional token-level match for each keyword part
-  const cvTokens = cv.split(/[\s,;.:()\[\]{}\n/\\|+@#$%^&*!?<>'"]+/).filter((t) => t.length >= 3);
+  // Minimum 5 chars to prevent short tokens (e.g. "net" from ".NET") from
+  // matching unrelated keywords (e.g. "kubernetes" contains "net").
+  const cvTokens = cv.split(/[\s,;.:()\[\]{}\n/\\|+@#$%^&*!?<>'"]+/).filter((t) => t.length >= 5);
   for (const part of sigParts) {
     for (const token of cvTokens) {
       if (token.includes(part) || part.includes(token)) return true;
@@ -388,37 +390,53 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
 function correctKeywords(result: GeminiOptimizationResult): GeminiOptimizationResult {
   const cvText = extractCvFullText(result.optimized_cv);
 
-  const nowMatched: string[] = [];
-  const stillMissing: string[] = [];
-
+  // Forward check: AI said "missing" but keyword IS in CV → move to matched
+  const rescuedFromMissing: string[] = [];
+  const confirmedMissing: string[] = [];
   for (const kw of result.missing_keywords) {
     if (keywordFoundInCv(kw, cvText)) {
-      nowMatched.push(kw);
+      rescuedFromMissing.push(kw);
     } else {
-      stillMissing.push(kw);
+      confirmedMissing.push(kw);
     }
   }
 
-  if (nowMatched.length === 0) return result; // nothing to fix
+  // Reverse check: AI said "matched" but keyword is NOT in CV → move to missing
+  const confirmedMatched: string[] = [];
+  const demotedToMissing: string[] = [];
+  for (const kw of result.matched_keywords) {
+    if (keywordFoundInCv(kw, cvText)) {
+      confirmedMatched.push(kw);
+    } else {
+      demotedToMissing.push(kw);
+    }
+  }
 
-  // Merge and deduplicate (case-insensitive)
-  const merged = result.matched_keywords.concat(nowMatched);
-  const seen: string[] = [];
-  const deduped = merged.filter((k) => {
-    const lower = k.toLowerCase();
-    if (seen.indexOf(lower) !== -1) return false;
-    seen.push(lower);
-    return true;
-  });
+  const finalMatched = confirmedMatched.concat(rescuedFromMissing);
+  const finalMissing = confirmedMissing.concat(demotedToMissing);
+
+  // Deduplicate (case-insensitive)
+  function dedup(list: string[]): string[] {
+    const seen: string[] = [];
+    return list.filter((k) => {
+      const lower = k.toLowerCase();
+      if (seen.indexOf(lower) !== -1) return false;
+      seen.push(lower);
+      return true;
+    });
+  }
+
+  const dedupedMatched = dedup(finalMatched);
+  const dedupedMissing = dedup(finalMissing);
 
   const atsScore = Math.round(
-    (deduped.length / Math.max(deduped.length + stillMissing.length, 1)) * 100,
+    (dedupedMatched.length / Math.max(dedupedMatched.length + dedupedMissing.length, 1)) * 100,
   );
 
   return {
     ...result,
-    matched_keywords: deduped,
-    missing_keywords: stillMissing,
+    matched_keywords: dedupedMatched,
+    missing_keywords: dedupedMissing,
     ats_score: atsScore,
   };
 }
@@ -431,27 +449,83 @@ export async function optimizeResume(
   rawCvText: string,
   jobDescription: string,
   selectedKeywords: string[] = [],
+  tipContexts: TipContext[] = [],
+  generalContext: string = '',
 ): Promise<GeminiOptimizationResult> {
   const parsedCv = await parseRawCvText(rawCvText);
   const structuredCvText = formatParsedCvForPrompt(parsedCv);
+
+  const filledTipContexts = tipContexts.filter((tc) => tc.user_input.trim());
+
+  const hasAdditionalInput =
+    selectedKeywords.length > 0 || filledTipContexts.length > 0 || generalContext.trim();
+
+  const additionalInputBlock = hasAdditionalInput
+    ? `
+--- ADDITIONAL USER INPUT ---
+${selectedKeywords.length > 0 ? `
+The user has confirmed they have experience with these keywords.
+Naturally integrate ALL of them into the resume:
+${selectedKeywords.join(', ')}
+` : ''}${filledTipContexts.length > 0 ? `
+The user has provided additional context for specific improvement areas:
+${filledTipContexts.map((tc) => `- Tip: "${tc.tip_text}" → User context: "${tc.user_input}"`).join('\n')}
+Incorporate this information naturally and accurately into the resume.
+` : ''}${generalContext.trim() ? `
+The user wants to add the following information to their resume:
+${generalContext.trim()}
+Incorporate this naturally. Do not fabricate anything beyond what the user has explicitly stated.
+` : ''}${(filledTipContexts.length > 0 || generalContext.trim()) ? `
+PLACEMENT RULE — When the user provides specific project or experience details in their additional input, you MUST add it as a concrete bullet point under the most relevant experience entry in the Work Experience section. Do NOT only mention it in the Professional Summary — that is not enough.
+The bullet point must be specific and action-oriented. Use the exact details the user provided.
+Example:
+  User input: "I built a tool management app with WinForms where users can save and view equipment"
+  Wrong (summary only): "experienced in WinForms development"
+  Correct (experience bullet): "Developed a desktop tool management application using Windows Forms, enabling users to save, view, and manage equipment records."
+Rule: If the user mentions a specific project, feature, or technology in their input → it MUST appear as a bullet point in the experience section, not just a vague mention in the summary.
+
+TIP DEDUPLICATION RULE — After incorporating all user inputs into the resume, review the new tips you are about to generate.
+For each tip, check: has this topic already been addressed in the updated resume content (either in experience bullets, summary, or skills)?
+If yes → do NOT include that tip. Replace it with a genuinely different improvement suggestion based on remaining gaps.
+A topic is considered "addressed" if:
+- The user provided input about it AND
+- It now appears as a concrete bullet point or skill in the resume
+Do not repeat tips that the user has already acted on.
+` : ''}
+IMPORTANT: After incorporating all user inputs, recalculate everything from scratch based on the NEW resume content:
+- matched_keywords: keywords from job description found in the NEW resume
+- missing_keywords: keywords from job description NOT in the NEW resume
+- ats_score: recalculate based on the NEW resume vs job description
+- tips: generate completely new tips based on remaining gaps
+Do NOT carry over previous matched/missing lists or scores.
+All output must be in English.`
+    : '';
 
   const prompt = `You are an expert ATS analyst and resume writer. All responses must be in English only.
 
 The candidate CV below is pre-parsed and verified. Company names, titles, dates, and bullets are correctly associated and ordered. Do NOT reorder or reassign them.
 
 STEP 1 — Extract keywords from the JOB DESCRIPTION only (technical skills, tools, frameworks, languages, methodologies — no generic terms).
-STEP 2 — Compare keywords using BIDIRECTIONAL FUZZY matching:
-- matched_keywords: Use bidirectional substring/abbreviation matching. A JD keyword is MATCHED if:
+STEP 2 — Classify keywords against the FINAL optimized resume text using these STRICT RULES:
+
+STRICT RULE for matched_keywords and missing_keywords:
+- matched_keywords: ONLY include keywords that are explicitly present in the FINAL resume text. Do not include a keyword as matched just because:
+  * The user mentioned it in their additional input
+  * It is implied by their experience
+  * A similar or related technology is present
+  A keyword is matched ONLY if it literally appears in the optimized resume content (using the bidirectional matching rules below).
+- missing_keywords: All important keywords from the job description that do NOT literally appear in the final resume text.
+- Before finalizing your JSON response, verify each keyword in matched_keywords by checking: does this exact word or phrase (or a recognized abbreviation/variant) appear in the optimized_cv content? If not, move it to missing_keywords.
+- This rule applies after every regeneration as well.
+
+Bidirectional matching rules (for the literal presence check above):
   (a) it appears verbatim in the CV, OR
   (b) the JD keyword is a substring of a CV term (e.g., "Mongo" in JD → "MongoDB" in CV = MATCHED), OR
   (c) a CV term is a substring of the JD keyword (e.g., "Microservices" in CV → "Microservices Technologies" in JD = MATCHED), OR
   (d) common abbreviation/variant pairs match (e.g., "JS" ↔ "JavaScript", "TS" ↔ "TypeScript", "K8s" ↔ "Kubernetes", "Postgres" ↔ "PostgreSQL").
-  If the core technical concept is present in any recognizable form, count it as MATCHED.
-- missing_keywords: keyword has NO form present in the CV — no substring, no abbreviation, no synonym.
 (Both lists must only contain keywords from the JOB DESCRIPTION in STEP 1)
 STEP 3 — ats_score = round(matched / (matched + missing) * 100). Return 0 if no keywords.
 STEP 4 — Rewrite the CV optimized for this job.
-${selectedKeywords.length > 0 ? `\nUSER-CONFIRMED KEYWORDS: The candidate has confirmed they genuinely have experience with these skills — integrate ALL of them naturally into the resume: ${selectedKeywords.join(', ')}.\n` : ''}
 STRICT RULES:
 A. PRESERVE the exact experience order given — do NOT reorder entries.
 B. PRESERVE exact dates — never alter or fabricate.
@@ -460,7 +534,7 @@ D. PRESERVE all references.
 E. NO fabrication — only reframe existing content and integrate missing keywords where genuinely applicable.
 
 STEP 5 — Write 3 specific improvement tips in English.
-
+${additionalInputBlock}
 Return ONLY valid JSON, no markdown:
 
 {

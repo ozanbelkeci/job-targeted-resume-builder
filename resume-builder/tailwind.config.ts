@@ -48,6 +48,43 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      animation: {
+        'fade-up':    'fade-up 0.6s ease-out forwards',
+        'fade-up-d1': 'fade-up 0.6s 0.1s ease-out both',
+        'fade-up-d2': 'fade-up 0.6s 0.2s ease-out both',
+        'fade-up-d3': 'fade-up 0.6s 0.35s ease-out both',
+        'fade-up-d4': 'fade-up 0.6s 0.5s ease-out both',
+        'fade-in':    'fade-in 0.4s ease-out forwards',
+        'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+        'float':      'float 5s ease-in-out infinite',
+        'badge-pop':  'badge-pop 0.5s 0.2s ease-out both',
+      },
+      keyframes: {
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(24px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(30,58,95,0)' },
+          '50%': { boxShadow: '0 0 32px 6px rgba(30,58,95,0.22)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        'badge-pop': {
+          '0%': { opacity: '0', transform: 'scale(0.85) translateY(-4px)' },
+          '70%': { transform: 'scale(1.04) translateY(0)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      backgroundImage: {
+        'dot-grid': 'radial-gradient(circle, #e2e8f0 1px, transparent 1px)',
+      },
     },
   },
   plugins: [],

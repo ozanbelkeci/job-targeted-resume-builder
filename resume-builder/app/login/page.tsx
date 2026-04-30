@@ -158,21 +158,37 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-6 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden bg-gradient-to-b from-[#F0F4F8] via-white to-white">
+      {/* Background mesh */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(at 50% 0%, rgba(30,58,95,0.07) 0%, transparent 60%)' }}
+      />
+      <div className="absolute inset-0 bg-dot-grid opacity-40 pointer-events-none" />
+
       <a
         href="/"
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#1E3A5F] mb-6 transition-colors"
+        className="relative flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#1E3A5F] mb-6 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
         Back to Home
       </a>
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 w-full max-w-md shadow-sm">
-        {/* Logo */}
-        <a href="/" className="text-[#1E3A5F] font-bold text-2xl block text-center mb-1">
-          {APP_NAME}
-        </a>
+
+      <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl border border-white/80 p-8 w-full max-w-md shadow-xl glow-ring-navy">
+        {/* Top highlight */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-200/50 to-transparent rounded-t-2xl" />
+
+        {/* Logo slot */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-10 h-10 rounded-xl bg-[#1E3A5F] flex items-center justify-center mb-3 shadow-md shadow-[#1E3A5F]/20">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <a href="/" className="text-[#1E3A5F] font-bold text-2xl tracking-tight">{APP_NAME}</a>
+        </div>
         <p className="text-gray-500 text-sm text-center mb-6">{subtitles[view]}</p>
 
         {/* Alerts */}

@@ -253,6 +253,15 @@ export function ResultsClient({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
+  const [regenerateSuccess, setRegenerateSuccess] = useState(false);
+
+  // Tip expand inputs
+  const [tipExpanded, setTipExpanded] = useState<Record<number, boolean>>({});
+  const [tipInputs, setTipInputs] = useState<Record<number, string>>({});
+  const [previousTipInputs, setPreviousTipInputs] = useState<Array<{ tip_text: string; user_input: string }>>([]);
+
+  // General context
+  const [generalContext, setGeneralContext] = useState('');
 
   // Feature 2: before/after toggle
   const [cvView, setCvView] = useState<'optimized' | 'original'>('optimized');
@@ -301,22 +310,38 @@ export function ResultsClient({
 
   // Feature 1: regenerate
   async function handleRegenerate() {
-    if (selected.size === 0) return;
     setIsRegenerating(true);
     setRegenerateError(null);
+    setRegenerateSuccess(false);
     try {
+      const filledTipContexts = tips
+        .map((tip, i) => ({
+          tip_index: i,
+          tip_text: tip,
+          user_input: tipInputs[i] ?? '',
+        }))
+        .filter((tc) => tc.user_input.trim());
+
       const res = await fetch('/api/refine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           optimizationId: optimization.id,
           selectedKeywords: Array.from(selected),
+          tipContexts: filledTipContexts,
+          generalContext: generalContext.trim(),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error((data as { error: string }).error ?? 'Failed to regenerate');
       setOptimization((data as { data: { optimization: Optimization } }).data.optimization);
+      setPreviousTipInputs(filledTipContexts.map((tc) => ({ tip_text: tc.tip_text, user_input: tc.user_input })));
       setSelected(new Set());
+      setTipInputs({});
+      setTipExpanded({});
+      setGeneralContext('');
+      setRegenerateSuccess(true);
+      setTimeout(() => setRegenerateSuccess(false), 3000);
     } catch (err) {
       setRegenerateError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
@@ -386,6 +411,25 @@ export function ResultsClient({
   const missing = optimization.ats_keywords?.missing ?? [];
   const tips = optimization.tips ?? [];
   const allChecked = checklist.coverLetterGenerated && checklist.linkedInUpdated && checklist.appliedToJob;
+
+  function isSimilarTip(newTip: string, oldTip: string): boolean {
+    const words = (s: string) =>
+      s.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+    const oldWords = words(oldTip);
+    if (oldWords.length === 0) return false;
+    const newText = newTip.toLowerCase();
+    const matches = oldWords.filter((w) => newText.includes(w)).length;
+    return matches / oldWords.length >= 0.5;
+  }
+
+  function isUpdatedTip(tipText: string): boolean {
+    return previousTipInputs.some((prev) => isSimilarTip(tipText, prev.tip_text));
+  }
+
+  const hasRegenerateInput =
+    selected.size > 0 ||
+    Object.values(tipInputs).some((v) => v.trim()) ||
+    generalContext.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-6 py-8">
@@ -553,7 +597,7 @@ export function ResultsClient({
                   <p className="text-xs text-gray-400 mb-2.5">
                     Check keywords you actually know — then regenerate.
                   </p>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
+                  <div className="flex flex-wrap gap-1.5">
                     {missing.map((kw) => {
                       const checked = selected.has(kw);
                       return (
@@ -578,38 +622,6 @@ export function ResultsClient({
                       );
                     })}
                   </div>
-
-                  {regenerateError && (
-                    <p className="text-xs text-red-500 mb-2">{regenerateError}</p>
-                  )}
-
-                  <button
-                    onClick={handleRegenerate}
-                    disabled={selected.size === 0 || isRegenerating}
-                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-[#1E3A5F] hover:bg-[#162d4a] text-white"
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        Regenerating...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Regenerate with Selected Keywords
-                        {selected.size > 0 && (
-                          <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">
-                            {selected.size}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </button>
                 </div>
               )}
 
@@ -617,18 +629,122 @@ export function ResultsClient({
               {tips.length > 0 && (
                 <div className="mt-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Improvement Tips</h3>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {tips.map((tip, i) => (
-                      <li key={i} className="flex gap-2.5 text-sm text-gray-600">
-                        <span className="w-5 h-5 flex-shrink-0 rounded-full bg-blue-100 text-[#1E3A5F] text-xs flex items-center justify-center font-bold mt-0.5">
-                          {i + 1}
-                        </span>
-                        {tip}
+                      <li key={i}>
+                        <div className="flex gap-2.5 text-sm text-gray-600">
+                          <span className="w-5 h-5 flex-shrink-0 rounded-full bg-blue-100 text-[#1E3A5F] text-xs flex items-center justify-center font-bold mt-0.5">
+                            {i + 1}
+                          </span>
+                          <span>
+                            {tip}
+                            {isUpdatedTip(tip) && (
+                              <span className="ml-2 inline-block text-[10px] text-gray-400 bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 font-normal align-middle">
+                                Updated based on your input
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 ml-7">
+                          <button
+                            onClick={() =>
+                              setTipExpanded((prev) => ({ ...prev, [i]: !prev[i] }))
+                            }
+                            className="text-xs text-[#1E3A5F] hover:text-[#162d4a] font-medium transition-colors"
+                          >
+                            {tipExpanded[i] ? '− Hide details' : '+ Add details about this (optional)'}
+                          </button>
+                          <div
+                            className={`overflow-hidden transition-all duration-200 ${
+                              tipExpanded[i] ? 'max-h-40 mt-2' : 'max-h-0'
+                            }`}
+                          >
+                            <textarea
+                              value={tipInputs[i] ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value.slice(0, 500);
+                                setTipInputs((prev) => ({ ...prev, [i]: val }));
+                              }}
+                              placeholder="Share any relevant experience or details... (optional)"
+                              rows={3}
+                              className="w-full text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-[#1E3A5F] placeholder:text-gray-400"
+                            />
+                            <p className="text-right text-xs text-gray-400 mt-0.5">
+                              {(tipInputs[i] ?? '').length}/500
+                            </p>
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
+
+              {/* Anything else textarea */}
+              <div className="mt-5 pt-4 border-t border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-700 mb-0.5">
+                  Anything else to add to your resume?
+                </h3>
+                <p className="text-xs text-gray-400 mb-2">
+                  Mention any experience, skill, or achievement you&apos;d like included. This field is optional.
+                </p>
+                <textarea
+                  value={generalContext}
+                  onChange={(e) => setGeneralContext(e.target.value.slice(0, 1000))}
+                  placeholder="e.g. I built a stock tracking app using Windows Forms in 2020, integrated with SQL Server..."
+                  rows={3}
+                  className="w-full text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-[#1E3A5F] placeholder:text-gray-400"
+                />
+                <p className="text-right text-xs text-gray-400 mt-0.5">{generalContext.length}/1000</p>
+              </div>
+
+              {/* Regenerate section */}
+              <div className="mt-4">
+                <p className="text-xs text-gray-400 mb-2">
+                  Select missing keywords, add details to tips, or share additional context above — then regenerate your resume.
+                </p>
+
+                {regenerateError && (
+                  <p className="text-xs text-red-500 mb-2">{regenerateError}</p>
+                )}
+
+                {regenerateSuccess && (
+                  <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-2">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Your resume has been updated!
+                  </div>
+                )}
+
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating || !hasRegenerateInput}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-[#1E3A5F] hover:bg-[#162d4a] text-white"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Regenerate CV
+                      {selected.size > 0 && (
+                        <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">
+                          {selected.size}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

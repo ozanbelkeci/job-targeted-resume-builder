@@ -4,11 +4,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { optimizeResume } from '@/lib/gemini';
 import { checkRateLimit } from '@/lib/rate-limit';
-import type { Optimization } from '@/types';
+import type { Optimization, TipContext } from '@/types';
 
 interface RefineRequestBody {
   optimizationId?: unknown;
   selectedKeywords?: unknown;
+  tipContexts?: unknown;
+  generalContext?: unknown;
 }
 
 export async function POST(request: NextRequest) {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as RefineRequestBody;
-    const { optimizationId, selectedKeywords } = body;
+    const { optimizationId, selectedKeywords, tipContexts, generalContext } = body;
 
     if (!optimizationId || typeof optimizationId !== 'string') {
       return NextResponse.json({ error: 'optimizationId is required' }, { status: 400 });
@@ -41,9 +43,19 @@ export async function POST(request: NextRequest) {
       ? (selectedKeywords as unknown[]).filter((k): k is string => typeof k === 'string')
       : [];
 
-    if (keywords.length === 0) {
-      return NextResponse.json({ error: 'At least one keyword must be selected' }, { status: 400 });
-    }
+    const parsedTipContexts: TipContext[] = Array.isArray(tipContexts)
+      ? (tipContexts as unknown[]).filter(
+          (tc): tc is TipContext =>
+            typeof tc === 'object' &&
+            tc !== null &&
+            typeof (tc as Record<string, unknown>).tip_index === 'number' &&
+            typeof (tc as Record<string, unknown>).tip_text === 'string' &&
+            typeof (tc as Record<string, unknown>).user_input === 'string',
+        )
+      : [];
+
+    const parsedGeneralContext =
+      typeof generalContext === 'string' ? generalContext.trim() : '';
 
     const { data: optimization } = await supabase
       .from('optimizations')
@@ -67,13 +79,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
-    // Re-run AI for CV content only (we ignore AI keyword output)
     let aiResult;
     try {
       aiResult = await optimizeResume(
         resume.original_text as string,
         optimization.job_description_raw,
         keywords,
+        parsedTipContexts,
+        parsedGeneralContext,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -81,28 +94,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to regenerate resume' }, { status: 502 });
     }
 
-    // Preserve existing keyword lists — only move selected keywords from missing to matched
-    const existingMatched = optimization.ats_keywords?.matched ?? [];
-    const existingMissing = optimization.ats_keywords?.missing ?? [];
-
-    const combined = existingMatched.concat(keywords);
-    const newMatched = combined.filter((k, idx) => combined.indexOf(k) === idx);
-    const newMissing = existingMissing.filter(
-      (k) => !keywords.some((sel) => k.toLowerCase() === sel.toLowerCase()),
-    );
-    const recalculated = Math.round(
-      (newMatched.length / Math.max(newMatched.length + newMissing.length, 1)) * 100,
-    );
-    // Score never decreases after refinement
-    const newScore = Math.max(optimization.ats_score, recalculated);
-
     const { data: updated, error: updateError } = await supabase
       .from('optimizations')
       .update({
         optimized_cv_json: aiResult.optimized_cv,
-        ats_score: newScore,
-        ats_keywords: { matched: newMatched, missing: newMissing },
+        ats_score: aiResult.ats_score,
+        ats_keywords: {
+          matched: aiResult.matched_keywords ?? [],
+          missing: aiResult.missing_keywords ?? [],
+        },
         tips: aiResult.tips ?? [],
+        regeneration_count: (optimization.regeneration_count ?? 0) + 1,
       })
       .eq('id', optimizationId)
       .eq('user_id', user.id)

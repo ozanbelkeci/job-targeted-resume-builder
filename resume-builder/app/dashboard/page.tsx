@@ -47,13 +47,20 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Navbar */}
-      <nav className="border-b border-gray-200 bg-white">
+      <nav className="sticky top-0 z-50 border-b border-white/20 bg-white/85 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-[#1E3A5F] font-bold text-xl">{APP_NAME}</Link>
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-[#1E3A5F] flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span className="text-[#1E3A5F] font-bold text-xl tracking-tight">{APP_NAME}</span>
+          </Link>
           <div className="flex items-center gap-4">
             <Link
               href="/app/upload"
-              className="bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-4 py-2 text-sm font-medium"
+              className="bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-4 py-2 text-sm font-semibold transition-all shadow-sm hover:shadow-md hover:-translate-y-px"
             >
               + New Optimization
             </Link>
@@ -71,11 +78,15 @@ export default async function DashboardPage() {
           </div>
 
           {/* Credits badge */}
-          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-right shadow-sm">
+          <div className="relative bg-white border border-gray-200 rounded-xl px-4 py-3 text-right shadow-sm overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" />
             {credits?.is_pro ? (
               <>
                 <p className="text-xs text-gray-400">Plan</p>
-                <p className="font-semibold text-[#1E3A5F]">Pro — Unlimited</p>
+                <p className="font-semibold text-[#1E3A5F] flex items-center gap-1.5 justify-end">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                  Pro — Unlimited
+                </p>
               </>
             ) : (
               <>
@@ -96,21 +107,28 @@ export default async function DashboardPage() {
 
         {/* Table */}
         {!optimizations || optimizations.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm">
-            <p className="text-gray-400 text-lg mb-2">No optimizations yet</p>
-            <p className="text-gray-400 text-sm mb-6">Upload your resume to get started.</p>
+          <div className="relative bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+            <div className="w-16 h-16 rounded-2xl bg-[#1E3A5F]/5 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#1E3A5F]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 text-lg font-semibold mb-1">No optimizations yet</p>
+            <p className="text-gray-400 text-sm mb-6">Upload your resume and paste a job listing to get started.</p>
             <Link
               href="/app/upload"
-              className="bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-6 py-2.5 text-sm font-medium"
+              className="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-6 py-2.5 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:shadow-md"
             >
-              Optimize My Resume
+              Optimize My Resume →
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="relative bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
+                <tr className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-50/80">
                   <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
                     Position
                   </th>
@@ -125,7 +143,7 @@ export default async function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {optimizations.map((opt) => (
-                  <tr key={opt.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={opt.id} className="hover:bg-blue-50/30 transition-colors duration-100">
                     <td className="px-6 py-4">
                       <p className="font-medium text-gray-900">{opt.job_title}</p>
                       {opt.job_company && (
@@ -134,7 +152,7 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${getScoreColor(opt.ats_score)}`}
+                        className={`inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full border border-current/20 shadow-sm ${getScoreColor(opt.ats_score)}`}
                       >
                         {opt.ats_score}
                       </span>
@@ -152,7 +170,7 @@ export default async function DashboardPage() {
                         </a>
                         <Link
                           href={`/app/results/${opt.id}`}
-                          className="text-sm text-gray-400 hover:text-gray-600"
+                          className="text-sm font-medium text-gray-400 hover:text-[#1E3A5F] transition-colors"
                         >
                           View →
                         </Link>
