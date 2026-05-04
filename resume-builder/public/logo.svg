@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" fill="none">
+  <!-- Background -->
+  <rect width="36" height="36" fill="#1E3A5F"/>
+
+  <!-- Document outline (lower-center, with top-right fold) -->
+  <path
+    d="M5 13H16L20 17V31H5V13Z"
+    stroke="white" stroke-width="1.8" stroke-linejoin="round" fill="none"
+  />
+  <!-- Corner fold -->
+  <path
+    d="M16 13V17H20"
+    stroke="white" stroke-width="1.8" stroke-linejoin="round" fill="none"
+  />
+
+  <!-- Text lines inside document -->
+  <path d="M8 22H17.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M8 24.5H17" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M8 27H13.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- Arrow shaft (from center of document to upper-right) -->
+  <path
+    d="M10 20L31 5"
+    stroke="white" stroke-width="2.6" stroke-linecap="round"
+  />
+
+  <!-- Arrowhead (tip at 31,5 — pointing upper-right) -->
+  <path d="M31 5L27 11.5L23.5 6.5Z" fill="white"/>
+</svg>

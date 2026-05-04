@@ -2,12 +2,8 @@ import Link from 'next/link';
 import { APP_NAME, PRICING } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import { LandingNavbar } from '@/components/LandingNavbar';
+import { HeroCvStack } from '@/components/HeroCvStack';
 
-const DOC_ICON = (
-  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
 
 export default async function LandingPage() {
   const supabase = createClient();
@@ -99,83 +95,10 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Product mockup */}
-          <div className="hidden lg:flex justify-center">
-            <div className="relative w-full max-w-sm animate-float">
-              {/* Multi-layer glow */}
-              <div className="absolute inset-[-8%] bg-gradient-to-br from-blue-200/50 via-transparent to-[#1E3A5F]/10 rounded-3xl blur-3xl" />
-              <div className="relative bg-white border border-gray-200/80 rounded-2xl shadow-2xl overflow-hidden glow-ring-navy">
-                {/* Card header */}
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-white to-gray-50/50">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ATS Match Score</span>
-                  <span className="text-xs text-gray-400">Software Engineer</span>
-                </div>
-
-                <div className="p-5">
-                  {/* Score ring */}
-                  <div className="flex justify-center mb-4">
-                    <div className="relative w-28 h-28">
-                      <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                        <circle
-                          cx="50" cy="50" r="40" fill="none"
-                          stroke="#1E3A5F" strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray="251.2"
-                          strokeDashoffset="67.8"
-                          style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-[#1E3A5F]">87</span>
-                        <span className="text-xs text-gray-400">/ 100</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center mb-5">
-                    <span className="text-xs font-semibold text-green-600 bg-green-50 border border-green-100 rounded-full px-3 py-1 shadow-sm shadow-green-100/50">
-                      Strong Match
-                    </span>
-                  </div>
-
-                  {/* Matched keywords */}
-                  <div className="mb-3">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Matched Keywords</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {['.NET', 'C#', 'REST API', 'Docker', 'SQL'].map((kw) => (
-                        <span
-                          key={kw}
-                          className="flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded-md px-2 py-0.5 font-medium"
-                        >
-                          <svg className="w-2.5 h-2.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Missing keywords */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-2">Missing Keywords</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {['Azure', 'React'].map((kw) => (
-                        <span key={kw} className="text-xs bg-red-50 text-red-600 border border-red-100 rounded-md px-2 py-0.5 font-medium">
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card footer */}
-                <div className="px-5 py-3 bg-[#F8FAFC] border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Optimized in 2.4s</span>
-                  <span className="text-xs font-semibold text-[#1E3A5F]">Download PDF →</span>
-                </div>
-              </div>
+          {/* CV Stack preview */}
+          <div className="hidden lg:flex justify-center items-center">
+            <div className="animate-float">
+              <HeroCvStack />
             </div>
           </div>
         </div>
@@ -506,9 +429,7 @@ export default async function LandingPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             {/* Logo slot */}
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-md bg-[#1E3A5F] flex items-center justify-center">
-                {DOC_ICON}
-              </div>
+              <img src="/logo.png" alt={APP_NAME} className="w-7 h-7 rounded-md shadow-sm" />
               <span className="text-[#1E3A5F] font-bold text-base">{APP_NAME}</span>
             </div>
 
