@@ -4,14 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AtsScoreRing } from '@/components/AtsScoreRing';
 import { CvPreview } from '@/components/CvPreview';
-import type { Optimization, ChecklistState, OptimizedCv } from '@/types';
+import type { Optimization, ChecklistState, OptimizedCv, CvSkills } from '@/types';
 
 // ─── helpers ────────────────────────────────────────────────
 
 function formatCvAsText(cv: OptimizedCv): string {
   const lines: string[] = [];
   lines.push(cv.name);
-  const contact = [cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.website]
+  if (cv.job_title) lines.push(cv.job_title);
+  const contact = [cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.website, cv.portfolio]
     .filter(Boolean)
     .join(' | ');
   if (contact) lines.push(contact);
@@ -40,10 +41,25 @@ function formatCvAsText(cv: OptimizedCv): string {
     });
   }
 
-  if (cv.skills.length > 0) {
-    lines.push('');
-    lines.push('SKILLS');
-    lines.push(cv.skills.join(', '));
+  if (Array.isArray(cv.skills)) {
+    if ((cv.skills as string[]).length > 0) {
+      lines.push('');
+      lines.push('SKILLS');
+      lines.push((cv.skills as string[]).join(', '));
+    }
+  } else {
+    const skillObj = cv.skills as CvSkills;
+    const cats = ['languages', 'frameworks', 'databases', 'tools', 'methodologies'] as const;
+    const labels: Record<string, string> = { languages: 'Languages', frameworks: 'Frameworks', databases: 'Databases', tools: 'Tools', methodologies: 'Methodologies' };
+    const hasAny = cats.some((c) => (skillObj[c] ?? []).length > 0);
+    if (hasAny) {
+      lines.push('');
+      lines.push('SKILLS');
+      for (const cat of cats) {
+        const arr = skillObj[cat] ?? [];
+        if (arr.length > 0) lines.push(`${labels[cat]}: ${arr.join(', ')}`);
+      }
+    }
   }
 
   if (cv.references && cv.references.length > 0) {
@@ -685,14 +701,20 @@ export function ResultsClient({
                 <h3 className="text-sm font-semibold text-gray-700 mb-0.5">
                   Anything else to add to your resume?
                 </h3>
-                <p className="text-xs text-gray-400 mb-2">
+                <p className="text-xs text-gray-400 mb-2.5">
                   Mention any experience, skill, or achievement you&apos;d like included. This field is optional.
                 </p>
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2.5">
+                  <span className="text-sm leading-none mt-px select-none">💡</span>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Adding metrics (numbers, percentages, team sizes) can increase your ATS score significantly.
+                  </p>
+                </div>
                 <textarea
                   value={generalContext}
                   onChange={(e) => setGeneralContext(e.target.value.slice(0, 1000))}
-                  placeholder="e.g. I built a stock tracking app using Windows Forms in 2020, integrated with SQL Server..."
-                  rows={3}
+                  placeholder={`Share any details to strengthen your resume:\n• Metrics: 'Reduced query time by 40%', 'Platform served 50,000 users'\n• Team size: 'Led a team of 4 developers'\n• Projects: 'Built a WinForms tool management app in 2020'\n• Achievements: 'Delivered project 2 weeks ahead of schedule'\n(All optional — leave blank to regenerate as-is)`}
+                  rows={4}
                   className="w-full text-xs text-gray-700 border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#1E3A5F] focus:border-[#1E3A5F] placeholder:text-gray-400"
                 />
                 <p className="text-right text-xs text-gray-400 mt-0.5">{generalContext.length}/1000</p>

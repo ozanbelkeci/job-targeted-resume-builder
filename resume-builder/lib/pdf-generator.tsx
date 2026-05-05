@@ -8,7 +8,7 @@ import {
   Font,
   renderToBuffer,
 } from '@react-pdf/renderer';
-import type { OptimizedCv } from '@/types';
+import type { OptimizedCv, CvSkills } from '@/types';
 
 Font.register({
   family: 'Roboto',
@@ -43,6 +43,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 700,
     color: '#1E3A5F',
+    marginBottom: 3,
+  },
+  headerJobTitle: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#4b5563',
     marginBottom: 5,
   },
   headerContactRow: {
@@ -124,6 +130,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
+  skillCatRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+  },
+  skillCatLabel: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: '#374151',
+    width: 80,
+    paddingTop: 2.5,
+    marginRight: 4,
+  },
+  skillCatBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    flex: 1,
+  },
   skillBadge: {
     fontSize: 8.5,
     color: '#1E3A5F',
@@ -174,14 +199,27 @@ const styles = StyleSheet.create({
   },
 });
 
+const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
+  { key: 'languages', label: 'Languages' },
+  { key: 'frameworks', label: 'Frameworks' },
+  { key: 'databases', label: 'Databases' },
+  { key: 'tools', label: 'Tools' },
+  { key: 'methodologies', label: 'Methodologies' },
+];
+
 function CvDocument({ cv }: { cv: OptimizedCv }) {
-  const contactParts = [cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.website].filter(Boolean) as string[];
+  const contactParts = [cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.website, cv.portfolio].filter(Boolean) as string[];
+  const skillsIsArray = Array.isArray(cv.skills);
+  const hasSkills = skillsIsArray
+    ? (cv.skills as string[]).length > 0
+    : SKILL_CATS.some(({ key }) => ((cv.skills as CvSkills)[key] ?? []).length > 0);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <Text style={styles.headerName}>{cv.name}</Text>
+        {cv.job_title ? <Text style={styles.headerJobTitle}>{cv.job_title}</Text> : null}
         <View style={styles.headerContactRow}>
           {contactParts.map((part, i) => (
             <Text key={i} style={styles.headerContact}>
@@ -241,15 +279,34 @@ function CvDocument({ cv }: { cv: OptimizedCv }) {
         ) : null}
 
         {/* Skills */}
-        {cv.skills.length > 0 ? (
+        {hasSkills ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Skills</Text>
             <View style={styles.sectionDivider} />
-            <View style={styles.skillsWrap}>
-              {cv.skills.map((skill, i) => (
-                <Text key={i} style={styles.skillBadge}>{skill}</Text>
-              ))}
-            </View>
+            {skillsIsArray ? (
+              <View style={styles.skillsWrap}>
+                {(cv.skills as string[]).map((skill, i) => (
+                  <Text key={i} style={styles.skillBadge}>{skill}</Text>
+                ))}
+              </View>
+            ) : (
+              <View>
+                {SKILL_CATS.map(({ key, label }) => {
+                  const arr = (cv.skills as CvSkills)[key] ?? [];
+                  if (arr.length === 0) return null;
+                  return (
+                    <View key={key} style={styles.skillCatRow}>
+                      <Text style={styles.skillCatLabel}>{label}</Text>
+                      <View style={styles.skillCatBadges}>
+                        {arr.map((skill, i) => (
+                          <Text key={i} style={styles.skillBadge}>{skill}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         ) : null}
 

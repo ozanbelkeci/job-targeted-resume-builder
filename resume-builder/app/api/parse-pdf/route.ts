@@ -18,6 +18,19 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const nameField = formData.get('name') as string | null;
+    const targetRoleTypesField = formData.get('target_role_types') as string | null;
+    const experienceLevelField = formData.get('experience_level') as string | null;
+    const workArrangementField = formData.get('work_arrangement') as string | null;
+    const targetIndustryField = formData.get('target_industry') as string | null;
+
+    let targetRoleTypes: string[] | null = null;
+    let workArrangement: string[] | null = null;
+    try {
+      if (targetRoleTypesField) targetRoleTypes = JSON.parse(targetRoleTypesField) as string[];
+      if (workArrangementField) workArrangement = JSON.parse(workArrangementField) as string[];
+    } catch {
+      // ignore malformed JSON, treat as null
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -56,6 +69,10 @@ export async function POST(request: NextRequest) {
         original_filename: file.name,
         original_text: extractedText,
         name: resumeName,
+        target_role_types: targetRoleTypes,
+        experience_level: experienceLevelField?.trim() || null,
+        work_arrangement: workArrangement,
+        target_industry: targetIndustryField?.trim() || null,
       })
       .select('id')
       .single();

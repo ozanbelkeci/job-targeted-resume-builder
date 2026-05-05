@@ -295,10 +295,13 @@ function formatParsedCvForPrompt(cv: ParsedCv): string {
 // ─────────────────────────────────────────────
 
 function extractCvFullText(cv: OptimizedCv): string {
+  const skillsText = Array.isArray(cv.skills)
+    ? cv.skills.join(' ')
+    : Object.values(cv.skills).flat().join(' ');
   return [
     cv.name,
     cv.summary ?? '',
-    cv.skills.join(' '),
+    skillsText,
     ...cv.experience.flatMap((e) => [e.title, e.company, ...e.bullets]),
     ...cv.education.map((e) => `${e.degree} ${e.school}`),
   ]
@@ -451,6 +454,7 @@ export async function optimizeResume(
   selectedKeywords: string[] = [],
   tipContexts: TipContext[] = [],
   generalContext: string = '',
+  candidateContext: string = '',
 ): Promise<GeminiOptimizationResult> {
   const parsedCv = await parseRawCvText(rawCvText);
   const structuredCvText = formatParsedCvForPrompt(parsedCv);
@@ -501,41 +505,108 @@ Do NOT carry over previous matched/missing lists or scores.
 All output must be in English.`
     : '';
 
-  const prompt = `You are an expert ATS analyst and resume writer. All responses must be in English only.
+  const prompt = `You are a professional resume writer and ATS (Applicant Tracking System) expert with deep knowledge of how modern ATS systems parse and rank resumes.
 
-The candidate CV below is pre-parsed and verified. Company names, titles, dates, and bullets are correctly associated and ordered. Do NOT reorder or reassign them.
+Your goal is to produce a highly ATS-optimized resume that also reads naturally to human recruiters.
 
-STEP 1 — Extract keywords from the JOB DESCRIPTION only (technical skills, tools, frameworks, languages, methodologies — no generic terms).
-STEP 2 — Classify keywords against the FINAL optimized resume text using these STRICT RULES:
+---
 
-STRICT RULE for matched_keywords and missing_keywords:
-- matched_keywords: ONLY include keywords that are explicitly present in the FINAL resume text. Do not include a keyword as matched just because:
-  * The user mentioned it in their additional input
-  * It is implied by their experience
-  * A similar or related technology is present
-  A keyword is matched ONLY if it literally appears in the optimized resume content (using the bidirectional matching rules below).
-- missing_keywords: All important keywords from the job description that do NOT literally appear in the final resume text.
-- Before finalizing your JSON response, verify each keyword in matched_keywords by checking: does this exact word or phrase (or a recognized abbreviation/variant) appear in the optimized_cv content? If not, move it to missing_keywords.
-- This rule applies after every regeneration as well.
+STRICT RULES — follow every single one:
 
-Bidirectional matching rules (for the literal presence check above):
+**1. Job Title Header**
+Add a clear job title directly under the candidate's name.
+Extract the most relevant title from the job description.
+Example: "Senior .NET Developer" or "Backend Engineer"
+
+**2. Keyword Integration**
+- Extract ALL technical keywords, tools, frameworks, and soft skills from the job description.
+- Integrate them naturally throughout the resume — in summary, experience bullets, and skills section.
+- Never stuff keywords unnaturally. Each keyword must appear in context.
+- If a keyword appears in the job description multiple times, treat it as high priority.
+
+**3. Experience Bullets**
+Every bullet point must follow this structure:
+[Strong action verb] + [specific technology/method] + [measurable outcome or context]
+
+Examples:
+✅ "Designed and deployed a microservices architecture using .NET Core and Docker, reducing deployment time by 35%"
+✅ "Optimized SQL Server queries resulting in 40% improvement in application response time"
+❌ "Worked on various projects using .NET"
+❌ "Responsible for database management"
+
+Rules for bullets:
+- Start every bullet with a strong, varied action verb (Developed, Architected, Optimized, Reduced, Implemented, Delivered, Automated, Designed, Led, Built, Improved, Streamlined)
+- Never start two consecutive bullets with the same verb
+- Add measurable outcomes wherever the user's experience allows it (percentages, scale, team size, user count, time saved)
+- If no specific metric is available, add context (production environment, team of X, enterprise-level, etc.)
+- Minimum 3 bullets per experience entry, maximum 6
+
+**4. Professional Summary**
+- 3-5 sentences, keyword-rich
+- Must include: years of experience, top 3-4 core technologies, one key achievement or strength, alignment with the target role
+- Must NOT start with "I" or "Highly skilled" — use a different opening
+- Include the exact job title from the job description in the summary
+
+**5. Skills Section**
+- Group skills by category: Languages | Frameworks | Databases | Tools | Methodologies
+- Include ALL keywords from the job description that the candidate has demonstrated experience with
+- Remove skills that have no evidence in the experience section
+
+**6. Remove These Sections Entirely**
+- References section — remove completely, it hurts ATS parsing
+- Objective statements — outdated, remove if present
+- Photos, graphics, tables, columns — plain text only
+
+**7. Formatting Rules for ATS Compatibility**
+- Use plain section headers: PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS (all caps)
+- Date format: "Month YYYY – Month YYYY" or "YYYY – YYYY"
+- Company name and job title on the same line or clearly separated
+- No special characters except bullet points (•), pipes (|), and dashes (-)
+- Spell out abbreviations at least once: "Application Programming Interface (API)"
+
+**8. Do Not Fabricate**
+- Never invent experience, technologies, or achievements the candidate hasn't mentioned
+- If the user provided additional context in their input, use it as a concrete bullet point in the experience section — not just in the summary
+- Only add metrics if they are explicitly provided by the user or clearly implied by their role
+
+**9. ATS Score Calculation**
+After writing the resume, calculate scores strictly:
+
+matched_keywords: ONLY keywords that literally appear in the final resume text. Verify each one.
+
+missing_keywords: Keywords from the job description that do NOT appear in the final resume.
+
+ats_score: Calculate as:
+(matched_keywords.length / (matched_keywords.length + missing_keywords.length)) * 100
+Round to nearest integer.
+
+Bidirectional matching rules for the literal presence check:
   (a) it appears verbatim in the CV, OR
   (b) the JD keyword is a substring of a CV term (e.g., "Mongo" in JD → "MongoDB" in CV = MATCHED), OR
   (c) a CV term is a substring of the JD keyword (e.g., "Microservices" in CV → "Microservices Technologies" in JD = MATCHED), OR
   (d) common abbreviation/variant pairs match (e.g., "JS" ↔ "JavaScript", "TS" ↔ "TypeScript", "K8s" ↔ "Kubernetes", "Postgres" ↔ "PostgreSQL").
-(Both lists must only contain keywords from the JOB DESCRIPTION in STEP 1)
-STEP 3 — ats_score = round(matched / (matched + missing) * 100). Return 0 if no keywords.
-STEP 4 — Rewrite the CV optimized for this job.
-STRICT RULES:
-A. PRESERVE the exact experience order given — do NOT reorder entries.
-B. PRESERVE exact dates — never alter or fabricate.
-C. PRESERVE all contact fields: email, phone, linkedin, github, website, location.
-D. PRESERVE all references.
-E. NO fabrication — only reframe existing content and integrate missing keywords where genuinely applicable.
 
-STEP 5 — Write 3 specific improvement tips in English.
-${additionalInputBlock}
-Return ONLY valid JSON, no markdown:
+**10. Improvement Tips**
+Generate 3 specific, actionable tips based on remaining gaps.
+Each tip must:
+- Reference a specific skill or requirement from the job description
+- Suggest a concrete action the candidate can take
+- Be written in English
+Do NOT repeat tips that the user has already provided input for.
+
+METRIC TIP RULE: Check all experience bullets in the optimized resume.
+If NONE of the bullets contain a specific metric, number, percentage, or measurable outcome,
+one of the 3 tips MUST be exactly:
+"Your resume lacks measurable achievements. Add specific metrics to your bullet points (e.g. team size, user count, performance improvements, delivery timelines). Use the input field below to share any numbers and we will incorporate them into your resume."
+If at least one bullet already contains a metric or number, do NOT generate this tip — use a different improvement suggestion instead.
+
+**11. Language**
+Respond ONLY in English regardless of the resume or job description language.
+Return ONLY valid JSON, no extra text, no markdown code blocks.
+
+---
+
+Return this exact JSON structure:
 
 {
   "job_title": "string",
@@ -545,24 +616,52 @@ Return ONLY valid JSON, no markdown:
   "missing_keywords": ["string"],
   "tips": ["string", "string", "string"],
   "optimized_cv": {
-    "name": "string", "email": "string", "phone": "string",
-    "linkedin": "string or null", "github": "string or null",
-    "website": "string or null", "location": "string or null",
+    "name": "string",
+    "job_title": "string",
+    "email": "string",
+    "phone": "string",
+    "linkedin": "string or null",
+    "github": "string or null",
+    "portfolio": "string or null",
+    "location": "string or null",
     "summary": "string",
     "experience": [
-      { "title": "string", "company": "string", "duration": "string", "bullets": ["string"] }
+      {
+        "title": "string",
+        "company": "string",
+        "duration": "string",
+        "bullets": ["string"]
+      }
     ],
-    "education": [{ "degree": "string", "school": "string", "year": "string" }],
-    "skills": ["string"],
-    "references": [{ "name": "string", "title": "string", "contact": "string" }]
+    "education": [
+      {
+        "degree": "string",
+        "school": "string",
+        "year": "string"
+      }
+    ],
+    "skills": {
+      "languages": ["string"],
+      "frameworks": ["string"],
+      "databases": ["string"],
+      "tools": ["string"],
+      "methodologies": ["string"]
+    }
   }
 }
 
---- VERIFIED CANDIDATE CV ---
+--- RESUME ---
 ${structuredCvText}
 
 --- JOB DESCRIPTION ---
-${jobDescription}`;
+${jobDescription}
+${candidateContext.trim() ? `
+--- CANDIDATE CONTEXT ---
+${candidateContext.trim()}
+
+Use this context to better tailor the resume tone, seniority level, and keyword emphasis.
+` : ''}
+${additionalInputBlock}`;
 
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',

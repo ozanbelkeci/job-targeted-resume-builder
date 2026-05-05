@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const { data: resume } = await supabase
       .from('resumes')
-      .select('original_text')
+      .select('original_text, target_role_types, experience_level, work_arrangement, target_industry')
       .eq('id', optimization.resume_id)
       .eq('user_id', user.id)
       .single();
@@ -78,6 +78,13 @@ export async function POST(request: NextRequest) {
     if (!resume) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
+
+    const contextParts: string[] = [];
+    if (resume.target_role_types?.length) contextParts.push(`Target role type: ${(resume.target_role_types as string[]).join(', ')}`);
+    if (resume.experience_level) contextParts.push(`Experience level: ${resume.experience_level as string}`);
+    if (resume.work_arrangement?.length) contextParts.push(`Work arrangement preference: ${(resume.work_arrangement as string[]).join(', ')}`);
+    if (resume.target_industry) contextParts.push(`Target industry: ${resume.target_industry as string}`);
+    const candidateContext = contextParts.join('\n');
 
     let aiResult;
     try {
@@ -87,6 +94,7 @@ export async function POST(request: NextRequest) {
         keywords,
         parsedTipContexts,
         parsedGeneralContext,
+        candidateContext,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

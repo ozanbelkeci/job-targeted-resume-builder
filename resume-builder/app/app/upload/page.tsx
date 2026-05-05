@@ -55,6 +55,10 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
   );
 }
 
+const ROLE_TYPES = ['Backend', 'Frontend', 'Full-Stack', 'Mobile', 'DevOps', 'Data', 'Product', 'Design', 'Other'] as const;
+const EXP_LEVELS = ['Student', 'Junior (0-2 yrs)', 'Mid (2-5 yrs)', 'Senior (5+ yrs)', 'Lead / Manager'] as const;
+const WORK_ARRANGEMENTS = ['Remote', 'Hybrid', 'On-site', 'Open to all'] as const;
+
 export default function UploadPage() {
   const router = useRouter();
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -62,6 +66,11 @@ export default function UploadPage() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cvName, setCvName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [targetRoleTypes, setTargetRoleTypes] = useState<string[]>([]);
+  const [experienceLevel, setExperienceLevel] = useState('');
+  const [workArrangement, setWorkArrangement] = useState<string[]>([]);
+  const [targetIndustry, setTargetIndustry] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,15 +106,41 @@ export default function UploadPage() {
     }
   }
 
-  async function handleUpload() {
+  useEffect(() => {
+    if (selectedFile) {
+      setCvName(selectedFile.name.replace(/\.pdf$/i, ''));
+      setNameError(null);
+    }
+  }, [selectedFile]);
+
+  function toggleRoleType(role: string) {
+    setTargetRoleTypes((prev) => prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]);
+  }
+  function toggleWorkArrangement(arr: string) {
+    setWorkArrangement((prev) => prev.includes(arr) ? prev.filter((a) => a !== arr) : [...prev, arr]);
+  }
+
+  async function handleUpload(saveContext = true) {
     if (!selectedFile) return;
+    if (!cvName.trim()) {
+      setNameError('Please name your CV profile to continue.');
+      return;
+    }
     setIsUploading(true);
     setError(null);
+    setNameError(null);
 
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      if (cvName.trim()) formData.append('name', cvName.trim());
+      formData.append('name', cvName.trim());
+
+      if (saveContext) {
+        if (targetRoleTypes.length) formData.append('target_role_types', JSON.stringify(targetRoleTypes));
+        if (experienceLevel) formData.append('experience_level', experienceLevel);
+        if (workArrangement.length) formData.append('work_arrangement', JSON.stringify(workArrangement));
+        if (targetIndustry.trim()) formData.append('target_industry', targetIndustry.trim());
+      }
 
       const response = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
       const result = await response.json();
@@ -245,22 +280,154 @@ export default function UploadPage() {
               <FileUploader onFileSelect={setSelectedFile} selectedFile={selectedFile} />
 
               {selectedFile && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Name this CV profile{' '}
-                    <span className="text-gray-400 font-normal">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={selectedFile.name.replace(/\.pdf$/i, '')}
-                    value={cvName}
-                    onChange={(e) => setCvName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F] transition-all"
-                  />
+                <div className="mt-5 space-y-5">
+                  {/* Section header */}
+                  <div className="pb-4 border-b border-gray-100">
+                    <h2 className="text-sm font-semibold text-gray-800">Help us tailor your resume</h2>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                      The more context you provide, the better your optimized resume will be. All fields are optional — skip anytime.
+                    </p>
+                  </div>
+
+                  {/* 1. CV Profile Name (required) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Name this CV profile <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={cvName}
+                      onChange={(e) => { setCvName(e.target.value); if (nameError) setNameError(null); }}
+                      placeholder="e.g. Senior .NET Developer CV, Product Manager CV"
+                      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F] transition-all ${nameError ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}
+                    />
+                    {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
+                  </div>
+
+                  {/* 2. Target Role Type (multi-select) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      What type of role are you targeting?
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ROLE_TYPES.map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => toggleRoleType(role)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            targetRoleTypes.includes(role)
+                              ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-[#1E3A5F]/40 hover:text-[#1E3A5F]'
+                          }`}
+                        >
+                          {role}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Experience Level (single-select) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your experience level
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {EXP_LEVELS.map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          onClick={() => setExperienceLevel((prev) => prev === level ? '' : level)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            experienceLevel === level
+                              ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-[#1E3A5F]/40 hover:text-[#1E3A5F]'
+                          }`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Work Arrangement (multi-select) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred work arrangement
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {WORK_ARRANGEMENTS.map((arr) => (
+                        <button
+                          key={arr}
+                          type="button"
+                          onClick={() => toggleWorkArrangement(arr)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            workArrangement.includes(arr)
+                              ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-[#1E3A5F]/40 hover:text-[#1E3A5F]'
+                          }`}
+                        >
+                          {arr}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 5. Target Industry (optional text) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Target industry or company type{' '}
+                      <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={targetIndustry}
+                      onChange={(e) => setTargetIndustry(e.target.value)}
+                      placeholder="e.g. Fintech, SaaS, E-commerce, Startups"
+                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F] transition-all"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-2.5">
+                      <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {error}
+                    </div>
+                  )}
+
+                  {/* Buttons */}
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      onClick={() => handleUpload(true)}
+                      disabled={isUploading}
+                      className="w-full bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl py-5 text-base font-semibold disabled:opacity-40 shadow-md shadow-[#1E3A5F]/20 hover:shadow-lg hover:shadow-[#1E3A5F]/25 transition-all hover:-translate-y-px"
+                    >
+                      {isUploading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Processing…
+                        </span>
+                      ) : (
+                        'Save & Continue →'
+                      )}
+                    </Button>
+                    <button
+                      onClick={() => handleUpload(false)}
+                      disabled={isUploading}
+                      className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors font-medium disabled:opacity-40"
+                    >
+                      Skip & Continue →
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {error && (
+              {!selectedFile && error && (
                 <div className="mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-2.5">
                   <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -268,24 +435,6 @@ export default function UploadPage() {
                   {error}
                 </div>
               )}
-
-              <Button
-                onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
-                className="mt-6 w-full bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl py-5 text-base font-semibold disabled:opacity-40 shadow-md shadow-[#1E3A5F]/20 hover:shadow-lg hover:shadow-[#1E3A5F]/25 transition-all hover:-translate-y-px"
-              >
-                {isUploading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Processing…
-                  </span>
-                ) : (
-                  'Save & Continue →'
-                )}
-              </Button>
             </>
           )}
         </div>

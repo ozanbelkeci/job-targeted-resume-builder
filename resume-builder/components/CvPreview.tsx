@@ -1,4 +1,12 @@
-import type { OptimizedCv } from '@/types';
+import type { OptimizedCv, CvSkills } from '@/types';
+
+const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
+  { key: 'languages', label: 'Languages' },
+  { key: 'frameworks', label: 'Frameworks' },
+  { key: 'databases', label: 'Databases' },
+  { key: 'tools', label: 'Tools' },
+  { key: 'methodologies', label: 'Methodologies' },
+];
 
 interface CvPreviewProps {
   cv: OptimizedCv;
@@ -20,13 +28,19 @@ export function CvPreview({ cv }: CvPreviewProps) {
     cv.linkedin,
     cv.github,
     cv.website,
+    cv.portfolio,
   ].filter(Boolean);
+  const skillsIsArray = Array.isArray(cv.skills);
+  const hasSkills = skillsIsArray
+    ? (cv.skills as string[]).length > 0
+    : SKILL_CATS.some(({ key }) => ((cv.skills as CvSkills)[key] ?? []).length > 0);
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm font-sans max-h-[72vh] overflow-y-auto space-y-5">
       {/* Header */}
       <div className="border-b-2 border-[#1E3A5F] pb-4">
         <h1 className="text-xl font-bold text-[#1E3A5F] leading-tight">{cv.name}</h1>
+        {cv.job_title && <p className="text-sm text-gray-500 font-medium mt-0.5">{cv.job_title}</p>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-gray-500 text-xs">
           {contactLinks.map((link, i) => (
             <span key={i} className="flex items-center gap-1">
@@ -91,16 +105,35 @@ export function CvPreview({ cv }: CvPreviewProps) {
       )}
 
       {/* Skills */}
-      {cv.skills.length > 0 && (
+      {hasSkills && (
         <section>
           <SectionTitle>Skills</SectionTitle>
-          <div className="flex flex-wrap gap-1.5">
-            {cv.skills.map((skill, i) => (
-              <span key={i} className="bg-blue-50 text-[#1E3A5F] text-xs px-2 py-0.5 rounded font-medium">
-                {skill}
-              </span>
-            ))}
-          </div>
+          {skillsIsArray ? (
+            <div className="flex flex-wrap gap-1.5">
+              {(cv.skills as string[]).map((skill, i) => (
+                <span key={i} className="bg-blue-50 text-[#1E3A5F] text-xs px-2 py-0.5 rounded font-medium">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {SKILL_CATS.map(({ key, label }) => {
+                const arr = (cv.skills as CvSkills)[key] ?? [];
+                if (arr.length === 0) return null;
+                return (
+                  <div key={key} className="flex flex-wrap items-start gap-1.5">
+                    <span className="text-xs font-semibold text-gray-500 w-24 shrink-0 pt-0.5">{label}</span>
+                    {arr.map((skill, i) => (
+                      <span key={i} className="bg-blue-50 text-[#1E3A5F] text-xs px-2 py-0.5 rounded font-medium">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 

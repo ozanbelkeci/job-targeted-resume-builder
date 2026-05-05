@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'jobInputType must be url or text' }, { status: 400 });
     }
 
-    // Fetch resume text
+    // Fetch resume text and candidate context
     const { data: resume, error: resumeError } = await supabase
       .from('resumes')
-      .select('original_text')
+      .select('original_text, target_role_types, experience_level, work_arrangement, target_industry')
       .eq('id', resumeId)
       .eq('user_id', user.id)
       .single();
@@ -70,10 +70,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
+    const contextParts: string[] = [];
+    if (resume.target_role_types?.length) contextParts.push(`Target role type: ${(resume.target_role_types as string[]).join(', ')}`);
+    if (resume.experience_level) contextParts.push(`Experience level: ${resume.experience_level as string}`);
+    if (resume.work_arrangement?.length) contextParts.push(`Work arrangement preference: ${(resume.work_arrangement as string[]).join(', ')}`);
+    if (resume.target_industry) contextParts.push(`Target industry: ${resume.target_industry as string}`);
+    const candidateContext = contextParts.join('\n');
+
     // Call AI
     let aiResult;
     try {
-      aiResult = await optimizeResume(resume.original_text, jobDescription as string);
+      aiResult = await optimizeResume(resume.original_text as string, jobDescription as string, [], [], '', candidateContext);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('AI error:', message);

@@ -6,6 +6,10 @@ export interface Resume {
   original_text: string;
   is_default: boolean;
   storage_path: string | null;
+  target_role_types: string[] | null;
+  experience_level: string | null;
+  work_arrangement: string[] | null;
+  target_industry: string | null;
   created_at: string;
 }
 
@@ -28,18 +32,28 @@ export interface CvReference {
   contact: string;
 }
 
+export interface CvSkills {
+  languages: string[];
+  frameworks: string[];
+  databases: string[];
+  tools: string[];
+  methodologies: string[];
+}
+
 export interface OptimizedCv {
   name: string;
+  job_title?: string;
   email: string;
   phone: string;
   linkedin: string | null;
   github: string | null;
-  website: string | null;
+  website?: string | null;
+  portfolio?: string | null;
   location: string | null;
   summary: string;
   experience: OptimizedCvExperience[];
   education: OptimizedCvEducation[];
-  skills: string[];
+  skills: CvSkills | string[];
   references?: CvReference[];
 }
 
