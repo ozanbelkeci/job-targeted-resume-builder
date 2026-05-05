@@ -106,6 +106,14 @@ export function DataTable<T extends Record<string, any>>({
     });
   }, [filteredData, sortConfig]);
 
+  // Reset to valid page when filtered data shrinks (e.g. after delete on last page)
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [filteredData.length, currentPage, itemsPerPage]);
+
   // Pagination
   const paginatedData = useMemo(() => {
     if (!showPagination) return sortedData;

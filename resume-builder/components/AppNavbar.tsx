@@ -52,7 +52,7 @@ export function AppNavbar({ userEmail: initialEmail }: AppNavbarProps) {
   const initials = userEmail ? userEmail[0].toUpperCase() : '?';
 
   return (
-    <div className="sticky top-0 z-50 flex justify-center w-full pt-4 px-4">
+    <div className="sticky top-0 z-50 flex justify-center w-full pt-4 px-4 pb-3 bg-gradient-to-b from-[#F8FAFC] via-[#F8FAFC]/80 to-transparent">
       <div className="flex items-center justify-between px-5 py-2.5 bg-white/90 backdrop-blur-xl rounded-full shadow-[0_4px_24px_-4px_rgba(30,58,95,0.14),0_1px_4px_rgba(0,0,0,0.06)] border border-gray-200/70 w-full max-w-3xl relative">
 
         {/* Logo */}
