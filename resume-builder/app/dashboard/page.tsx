@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { APP_NAME } from '@/lib/constants';
-import { SignOutButton } from '@/components/SignOutButton';
+import { AppNavbar } from '@/components/AppNavbar';
 import type { Optimization, UserCredits } from '@/types';
 
 export default async function DashboardPage() {
@@ -46,28 +45,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/20 bg-white/85 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-[#1E3A5F] flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <span className="text-[#1E3A5F] font-bold text-xl tracking-tight">{APP_NAME}</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/app/upload"
-              className="bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-4 py-2 text-sm font-semibold transition-all shadow-sm hover:shadow-md hover:-translate-y-px"
-            >
-              + New Optimization
-            </Link>
-            <SignOutButton />
-          </div>
-        </div>
-      </nav>
+      <AppNavbar userEmail={user.email ?? null} />
 
       <div className="max-w-5xl mx-auto px-6 py-10">
         {/* Header */}
