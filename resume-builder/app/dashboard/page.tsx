@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AppNavbar } from '@/components/AppNavbar';
+import { DashboardClient } from './DashboardClient';
 import type { Optimization, UserCredits } from '@/types';
 
 export default async function DashboardPage() {
@@ -28,20 +29,6 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .single<Pick<UserCredits, 'credits' | 'is_pro'>>(),
   ]);
-
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }
-
-  function getScoreColor(score: number) {
-    if (score < 50) return 'text-red-600 bg-red-50';
-    if (score < 75) return 'text-amber-600 bg-amber-50';
-    return 'text-green-600 bg-green-50';
-  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -84,82 +71,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Table */}
-        {!optimizations || optimizations.length === 0 ? (
-          <div className="relative bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm overflow-hidden">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
-            <div className="w-16 h-16 rounded-2xl bg-[#1E3A5F]/5 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-[#1E3A5F]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <p className="text-gray-700 text-lg font-semibold mb-1">No optimizations yet</p>
-            <p className="text-gray-400 text-sm mb-6">Upload your resume and paste a job listing to get started.</p>
-            <Link
-              href="/app/upload"
-              className="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-6 py-2.5 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:shadow-md"
-            >
-              Optimize My Resume →
-            </Link>
-          </div>
-        ) : (
-          <div className="relative bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-50/80">
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Position
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    ATS Score
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
-                    Date
-                  </th>
-                  <th className="px-6 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {optimizations.map((opt) => (
-                  <tr key={opt.id} className="hover:bg-blue-50/30 transition-colors duration-100">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{opt.job_title}</p>
-                      {opt.job_company && (
-                        <p className="text-sm text-gray-400">{opt.job_company}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full border border-current/20 shadow-sm ${getScoreColor(opt.ats_score)}`}
-                      >
-                        {opt.ats_score}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(opt.created_at)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3 justify-end">
-                        <a
-                          href={`/api/download-pdf?id=${opt.id}`}
-                          className="text-sm text-[#1E3A5F] hover:underline font-medium"
-                        >
-                          Download PDF
-                        </a>
-                        <Link
-                          href={`/app/results/${opt.id}`}
-                          className="text-sm font-medium text-gray-400 hover:text-[#1E3A5F] transition-colors"
-                        >
-                          View →
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DashboardClient optimizations={optimizations ?? []} />
       </div>
     </div>
   );
