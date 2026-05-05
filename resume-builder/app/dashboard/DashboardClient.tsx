@@ -71,13 +71,16 @@ export function DashboardClient({ optimizations: initial }: Props) {
       key: 'job_title' as const,
       header: 'Position',
       sortable: true,
-      render: (_: string, row: OptRow) => (
-        <div>
-          <p className="font-medium text-gray-900">{row.job_title}</p>
-          {row.job_company && (
-            <p className="text-xs text-gray-400 mt-0.5">{row.job_company}</p>
-          )}
-        </div>
+      render: (val: string) => (
+        <span className="font-medium text-gray-900">{val}</span>
+      ),
+    },
+    {
+      key: 'job_company' as const,
+      header: 'Company',
+      sortable: true,
+      render: (val: string | null) => (
+        <span className="text-sm text-gray-500">{val ?? '—'}</span>
       ),
     },
     {
