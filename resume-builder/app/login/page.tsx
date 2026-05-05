@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -182,7 +183,7 @@ function LoginForm() {
 
         {/* Logo slot */}
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt={APP_NAME} className="w-12 h-12 rounded-xl shadow-md mb-3" />
+          <Image src="/logo.png" alt={APP_NAME} width={48} height={48} className="w-12 h-12 rounded-xl shadow-md mb-3" />
           <a href="/" className="text-[#1E3A5F] font-bold text-2xl tracking-tight">{APP_NAME}</a>
         </div>
         <p className="text-gray-500 text-sm text-center mb-6">{subtitles[view]}</p>

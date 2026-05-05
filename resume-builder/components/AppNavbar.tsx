@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -57,13 +58,13 @@ export function AppNavbar({ userEmail: initialEmail }: AppNavbarProps) {
 
         {/* Logo */}
         <Link href="/app/upload" className="flex items-center gap-2 flex-shrink-0">
-          <motion.img
-            src="/logo.png"
-            alt={APP_NAME}
-            className="w-8 h-8 rounded-lg shadow-sm"
+          <motion.div
+            className="w-8 h-8 rounded-lg shadow-sm overflow-hidden"
             whileHover={{ rotate: 8, scale: 1.05 }}
             transition={{ duration: 0.25 }}
-          />
+          >
+            <Image src="/logo.png" alt={APP_NAME} width={32} height={32} className="w-full h-full" />
+          </motion.div>
           <span className="text-[#1E3A5F] font-bold text-base tracking-tight">{APP_NAME}</span>
         </Link>
 
@@ -186,7 +187,7 @@ export function AppNavbar({ userEmail: initialEmail }: AppNavbarProps) {
             </motion.button>
 
             <div className="absolute top-4 left-6 flex items-center gap-2">
-              <img src="/logo.png" alt={APP_NAME} className="w-8 h-8 rounded-lg shadow-sm" />
+              <Image src="/logo.png" alt={APP_NAME} width={32} height={32} className="w-8 h-8 rounded-lg shadow-sm" />
               <span className="text-[#1E3A5F] font-bold text-base">{APP_NAME}</span>
             </div>
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { APP_NAME, PRICING } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import { LandingNavbar } from '@/components/LandingNavbar';
@@ -429,7 +430,7 @@ export default async function LandingPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             {/* Logo slot */}
             <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt={APP_NAME} className="w-7 h-7 rounded-md shadow-sm" />
+              <Image src="/logo.png" alt={APP_NAME} width={28} height={28} className="w-7 h-7 rounded-md shadow-sm" />
               <span className="text-[#1E3A5F] font-bold text-base">{APP_NAME}</span>
             </div>
 
