@@ -80,7 +80,7 @@ export function DashboardClient({ optimizations: initial }: Props) {
       header: 'Company',
       sortable: true,
       render: (val: string | null) => (
-        <span className="text-sm text-gray-500">{val ?? '—'}</span>
+        <span className="text-sm text-gray-500">{val ?? ''}</span>
       ),
     },
     {

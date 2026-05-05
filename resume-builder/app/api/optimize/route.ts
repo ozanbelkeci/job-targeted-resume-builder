@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         resume_id: resumeId,
         job_title: aiResult.job_title,
-        job_company: aiResult.job_company,
+        job_company: aiResult.job_company && aiResult.job_company !== 'null' ? aiResult.job_company : null,
         job_input_type: jobInputType,
         job_url: typeof jobUrl === 'string' ? jobUrl : null,
         job_description_raw: jobDescription,
