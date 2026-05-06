@@ -313,12 +313,26 @@ export function EditableCvPreview({
                   <div className="flex items-center gap-2">
                     <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
                     {!isActive && (
-                      <button
-                        onClick={() => onSetEditingExperience(i)}
-                        className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
-                      >
-                        Edit bullets
-                      </button>
+                      <>
+                        <button
+                          onClick={() => onSetEditingExperience(i)}
+                          className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
+                        >
+                          Edit bullets
+                        </button>
+                        <button
+                          onClick={() => {
+                            const updated = cv.experience.filter((_, idx) => idx !== i);
+                            onChange({ ...cv, experience: updated });
+                          }}
+                          className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                          aria-label="Remove experience"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
