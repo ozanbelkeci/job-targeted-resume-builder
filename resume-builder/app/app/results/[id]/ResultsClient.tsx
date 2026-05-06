@@ -961,7 +961,6 @@ export function ResultsClient({
                   onChange={handleCvChange}
                   editingExperienceIdx={editingExperienceIdx}
                   onSetEditingExperience={setEditingExperienceIdx}
-                  missingKeywords={liveMissing}
                 />
               ) : (
                 <>

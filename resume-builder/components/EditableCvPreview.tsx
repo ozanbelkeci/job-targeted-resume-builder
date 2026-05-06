@@ -10,7 +10,6 @@ interface EditableCvPreviewProps {
   onChange: (updated: OptimizedCv, immediate?: boolean) => void;
   editingExperienceIdx: number | null;
   onSetEditingExperience: (idx: number | null) => void;
-  missingKeywords: string[];
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -26,7 +25,6 @@ export function EditableCvPreview({
   onChange,
   editingExperienceIdx,
   onSetEditingExperience,
-  missingKeywords,
 }: EditableCvPreviewProps) {
   const contactLinks = [
     cv.email,
@@ -169,7 +167,6 @@ export function EditableCvPreview({
           <SkillsEditor
             skills={cv.skills}
             onChange={handleSkillsChange}
-            missingKeywords={missingKeywords}
           />
         </section>
       )}

@@ -14,7 +14,7 @@ const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
 interface SkillsEditorProps {
   skills: CvSkills | string[];
   onChange: (s: CvSkills | string[], immediate: boolean) => void;
-  missingKeywords: string[];
+
 }
 
 function ChipButton({
@@ -116,7 +116,7 @@ function AddInput({ onAdd, category, onCategoryChange, showCategorySelect }: Add
   );
 }
 
-export function SkillsEditor({ skills, onChange, missingKeywords }: SkillsEditorProps) {
+export function SkillsEditor({ skills, onChange }: SkillsEditorProps) {
   const [addCategory, setAddCategory] = useState<keyof CvSkills>('tools');
   const isArray = Array.isArray(skills);
 
