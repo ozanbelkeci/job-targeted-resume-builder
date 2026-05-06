@@ -103,7 +103,7 @@ function buildStyles(accentColor: string) {
     },
     bulletDot: {
       width: 10,
-      color: '#9ca3af',
+      color: accentColor,
       fontSize: 9,
       marginTop: 1,
     },
@@ -139,7 +139,7 @@ function buildStyles(accentColor: string) {
     skillBadge: {
       fontSize: 8.5,
       color: accentColor,
-      backgroundColor: '#eff6ff',
+      backgroundColor: '#f1f5f9',
       paddingHorizontal: 7,
       paddingVertical: 2.5,
       borderRadius: 3,

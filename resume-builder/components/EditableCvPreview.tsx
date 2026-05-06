@@ -397,10 +397,11 @@ export function EditableCvPreview({
                     onDone={() => onSetEditingExperience(null)}
                   />
                 ) : (
-                  <ul className="mt-1 space-y-1 pl-3">
+                  <ul className="mt-1 space-y-1">
                     {exp.bullets.map((bullet, j) => (
-                      <li key={j} className="text-gray-700 leading-relaxed list-disc text-xs">
-                        {bullet}
+                      <li key={j} className="flex gap-1.5 text-gray-700 leading-relaxed text-xs">
+                        <span className="flex-shrink-0 mt-0.5" style={{ color: theme.accentColor }}>•</span>
+                        <span>{bullet}</span>
                       </li>
                     ))}
                   </ul>
@@ -488,7 +489,7 @@ export function EditableCvPreview({
       {hasSkills && (
         <section>
           <SectionTitle theme={theme}>Skills</SectionTitle>
-          <SkillsEditor skills={cv.skills} onChange={handleSkillsChange} />
+          <SkillsEditor skills={cv.skills} onChange={handleSkillsChange} accentColor={theme.accentColor} />
         </section>
       )}
 

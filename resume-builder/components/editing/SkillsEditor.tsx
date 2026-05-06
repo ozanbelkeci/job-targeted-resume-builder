@@ -14,22 +14,28 @@ const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
 interface SkillsEditorProps {
   skills: CvSkills | string[];
   onChange: (s: CvSkills | string[], immediate: boolean) => void;
-
+  accentColor?: string;
 }
 
 function ChipButton({
   label,
   onRemove,
+  accentColor,
 }: {
   label: string;
   onRemove: () => void;
+  accentColor: string;
 }) {
   return (
-    <span className="group relative flex items-center bg-blue-50 text-[#1E3A5F] text-xs px-2 py-0.5 rounded font-medium">
+    <span
+      className="group relative flex items-center text-xs px-2 py-0.5 rounded font-medium"
+      style={{ backgroundColor: accentColor + '18', color: accentColor }}
+    >
       {label}
       <button
         onClick={onRemove}
-        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-[#1E3A5F]/60 hover:text-red-500 leading-none"
+        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 leading-none"
+        style={{ color: accentColor }}
         aria-label={`Remove ${label}`}
       >
         ×
@@ -104,7 +110,7 @@ function AddInput({ onAdd, category, onCategoryChange, showCategorySelect }: Add
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="e.g. Docker"
-        className="text-xs border border-[#1E3A5F]/30 rounded px-2 py-0.5 w-28 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+        className="text-xs border border-gray-200 rounded px-2 py-0.5 w-28 focus:outline-none focus:ring-1 focus:ring-gray-300"
       />
       <button
         onMouseDown={(e) => { e.preventDefault(); handleAdd(); }}
@@ -116,7 +122,7 @@ function AddInput({ onAdd, category, onCategoryChange, showCategorySelect }: Add
   );
 }
 
-export function SkillsEditor({ skills, onChange }: SkillsEditorProps) {
+export function SkillsEditor({ skills, onChange, accentColor = '#1E3A5F' }: SkillsEditorProps) {
   const [addCategory, setAddCategory] = useState<keyof CvSkills>('tools');
   const isArray = Array.isArray(skills);
 
@@ -148,7 +154,7 @@ export function SkillsEditor({ skills, onChange }: SkillsEditorProps) {
     return (
       <div className="flex flex-wrap gap-1.5 items-center">
         {(skills as string[]).map((skill) => (
-          <ChipButton key={skill} label={skill} onRemove={() => removeSkill(skill)} />
+          <ChipButton key={skill} label={skill} onRemove={() => removeSkill(skill)} accentColor={accentColor} />
         ))}
         <AddInput onAdd={addSkill} showCategorySelect={false} />
       </div>
@@ -166,7 +172,7 @@ export function SkillsEditor({ skills, onChange }: SkillsEditorProps) {
             <span className="text-xs font-semibold text-gray-500 w-24 shrink-0 pt-0.5">{label}</span>
             <div className="flex flex-wrap gap-1.5 items-center flex-1">
               {arr.map((skill) => (
-                <ChipButton key={skill} label={skill} onRemove={() => removeSkill(skill)} />
+                <ChipButton key={skill} label={skill} onRemove={() => removeSkill(skill)} accentColor={accentColor} />
               ))}
             </div>
           </div>

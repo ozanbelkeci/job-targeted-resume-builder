@@ -99,7 +99,7 @@ function buildStyles(accentColor: string) {
     },
     bulletDot: {
       width: 12,
-      color: '#9ca3af',
+      color: accentColor,
       fontSize: 9,
       marginTop: 1,
     },
