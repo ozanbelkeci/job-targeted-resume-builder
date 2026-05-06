@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { ATS_SCORE_THRESHOLDS } from '@/lib/constants';
 
 interface AtsScoreRingProps {
@@ -7,9 +8,9 @@ interface AtsScoreRingProps {
 }
 
 function getScoreColor(score: number) {
-  if (score < ATS_SCORE_THRESHOLDS.LOW) return '#ef4444'; // red
-  if (score < ATS_SCORE_THRESHOLDS.MEDIUM) return '#f59e0b'; // amber
-  return '#22c55e'; // green
+  if (score < ATS_SCORE_THRESHOLDS.LOW) return '#ef4444';
+  if (score < ATS_SCORE_THRESHOLDS.MEDIUM) return '#f59e0b';
+  return '#22c55e';
 }
 
 function getScoreLabel(score: number) {
@@ -19,6 +20,32 @@ function getScoreLabel(score: number) {
 }
 
 export function AtsScoreRing({ score }: AtsScoreRingProps) {
+  const [displayScore, setDisplayScore] = useState(score);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const start = displayScore;
+    const end = score;
+    const diff = end - start;
+    if (diff === 0) return;
+    const steps = Math.abs(diff);
+    const stepTime = Math.max(Math.round(600 / steps), 8);
+    let current = start;
+    timerRef.current = setInterval(() => {
+      current += diff > 0 ? 1 : -1;
+      setDisplayScore(current);
+      if (current === end && timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }, stepTime);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score]);
+
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / 100) * circumference;
@@ -47,16 +74,16 @@ export function AtsScoreRing({ score }: AtsScoreRingProps) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference - progress}
-            style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+            style={{ transition: 'stroke-dashoffset 0.6s ease-in-out, stroke 0.4s ease' }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold" style={{ color }}>{score}</span>
+          <span className="text-3xl font-bold tabular-nums" style={{ color }}>{displayScore}</span>
           <span className="text-xs text-gray-400">/ 100</span>
         </div>
       </div>
       <span
-        className="text-sm font-semibold px-3 py-1 rounded-full"
+        className="text-sm font-semibold px-3 py-1 rounded-full transition-colors duration-400"
         style={{ color, backgroundColor: `${color}18` }}
       >
         {label}

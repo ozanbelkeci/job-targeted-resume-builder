@@ -1,12 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import debounce from 'lodash.debounce';
 import { AtsScoreRing } from '@/components/AtsScoreRing';
-import { CvPreview } from '@/components/CvPreview';
-import type { Optimization, ChecklistState, OptimizedCv, CvSkills } from '@/types';
+import { EditableCvPreview } from '@/components/EditableCvPreview';
+import { calculateLiveScore } from '@/lib/ats-calculator';
+import type { Optimization, ChecklistState, OptimizedCv, CvSkills, LiveScoreResult } from '@/types';
 
 // ─── helpers ────────────────────────────────────────────────
+
+function addIdsToExperience(cv: OptimizedCv): OptimizedCv {
+  return {
+    ...cv,
+    experience: cv.experience.map((exp, i) => ({
+      ...exp,
+      id: exp.id ?? `exp-${i}`,
+    })),
+  };
+}
 
 function formatCvAsText(cv: OptimizedCv): string {
   const lines: string[] = [];
@@ -265,6 +277,115 @@ export function ResultsClient({
   const router = useRouter();
   const [optimization, setOptimization] = useState<Optimization>(initialOptimization);
 
+  // Inline editing state
+  const [editedCv, setEditedCv] = useState<OptimizedCv>(() =>
+    addIdsToExperience(initialOptimization.optimized_cv_json),
+  );
+  const [liveScore, setLiveScore] = useState(initialOptimization.ats_score);
+  const [liveMatched, setLiveMatched] = useState(
+    initialOptimization.ats_keywords?.matched ?? [],
+  );
+  const [liveMissing, setLiveMissing] = useState(
+    initialOptimization.ats_keywords?.missing ?? [],
+  );
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [editingExperienceIdx, setEditingExperienceIdx] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  // Refs for stable closures in debounced recalc
+  const originalMatchedRef = useRef(initialOptimization.ats_keywords?.matched ?? []);
+  const originalMissingRef = useRef(initialOptimization.ats_keywords?.missing ?? []);
+  const liveScoreRef = useRef(initialOptimization.ats_score);
+  liveScoreRef.current = liveScore;
+
+  function showToast(msg: string, type: 'success' | 'error') {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2000);
+  }
+
+  function applyScoreResult(result: LiveScoreResult, prevScore: number) {
+    if (result.score > prevScore) showToast('↑ Score improved', 'success');
+    setLiveScore(result.score);
+    setLiveMatched(result.matched);
+    setLiveMissing(result.missing);
+    // Uncheck keywords that moved from missing → matched via manual editing
+    const newMissingLower = new Set(result.missing.map((k) => k.toLowerCase()));
+    setSelected((prev) => {
+      const filtered = Array.from(prev).filter((kw) => newMissingLower.has(kw.toLowerCase()));
+      return new Set(filtered);
+    });
+  }
+
+  function recalcScoreNow(cv: OptimizedCv) {
+    const result = calculateLiveScore(cv, originalMatchedRef.current, originalMissingRef.current);
+    applyScoreResult(result, liveScoreRef.current);
+  }
+
+  const recalcScoreDebounced = useRef(
+    debounce((cv: OptimizedCv) => {
+      const result = calculateLiveScore(cv, originalMatchedRef.current, originalMissingRef.current);
+      applyScoreResult(result, liveScoreRef.current);
+    }, 600),
+  ).current;
+
+  function handleCvChange(updated: OptimizedCv, immediate = false) {
+    setEditedCv(updated);
+    setHasUnsavedChanges(true);
+    if (immediate) {
+      recalcScoreNow(updated);
+    } else {
+      recalcScoreDebounced(updated);
+    }
+  }
+
+  async function handleSave() {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/optimizations/${optimization.id}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          optimized_cv_json: editedCv,
+          ats_score: liveScore,
+          ats_keywords: { matched: liveMatched, missing: liveMissing },
+        }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setOptimization((prev) => ({
+        ...prev,
+        optimized_cv_json: editedCv,
+        ats_score: liveScore,
+        ats_keywords: { matched: liveMatched, missing: liveMissing },
+      }));
+      setHasUnsavedChanges(false);
+      showToast('Changes saved', 'success');
+    } catch {
+      showToast('Could not save. Try again.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleNavigate(path: string) {
+    if (
+      hasUnsavedChanges &&
+      !window.confirm('You have unsaved changes.\nLeave without saving?')
+    ) return;
+    router.push(path);
+  }
+
+  // Browser back / tab close guard
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
+
   // Feature 1: keyword checkboxes + regenerate
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -350,7 +471,16 @@ export function ResultsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error((data as { error: string }).error ?? 'Failed to regenerate');
-      setOptimization((data as { data: { optimization: Optimization } }).data.optimization);
+      const newOpt = (data as { data: { optimization: Optimization } }).data.optimization;
+      setOptimization(newOpt);
+      const newCv = addIdsToExperience(newOpt.optimized_cv_json);
+      setEditedCv(newCv);
+      setLiveScore(newOpt.ats_score);
+      setLiveMatched(newOpt.ats_keywords?.matched ?? []);
+      setLiveMissing(newOpt.ats_keywords?.missing ?? []);
+      originalMatchedRef.current = newOpt.ats_keywords?.matched ?? [];
+      originalMissingRef.current = newOpt.ats_keywords?.missing ?? [];
+      setHasUnsavedChanges(false);
       setPreviousTipInputs(filledTipContexts.map((tc) => ({ tip_text: tc.tip_text, user_input: tc.user_input })));
       setSelected(new Set());
       setTipInputs({});
@@ -423,8 +553,8 @@ export function ResultsClient({
     router.push(`/app/results/${optimization.id}/linkedin`);
   }
 
-  const matched = optimization.ats_keywords?.matched ?? [];
-  const missing = optimization.ats_keywords?.missing ?? [];
+  const matched = liveMatched;
+  const missing = liveMissing;
   const tips = optimization.tips ?? [];
   const allChecked = checklist.coverLetterGenerated && checklist.linkedInUpdated && checklist.appliedToJob;
 
@@ -500,6 +630,32 @@ export function ResultsClient({
               </svg>
               Download PDF
             </a>
+            <button
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges || isSaving}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed border ${
+                hasUnsavedChanges
+                  ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm shadow-green-200 ring-2 ring-green-400/30 ring-offset-1'
+                  : 'bg-white text-gray-400 border-gray-200'
+              }`}
+            >
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save Changes
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -550,7 +706,7 @@ export function ResultsClient({
           )}
           <div className="flex-1 min-w-[8px]" />
           <button
-            onClick={() => router.push('/app/upload')}
+            onClick={() => handleNavigate('/app/upload')}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -559,7 +715,7 @@ export function ResultsClient({
             Start Over
           </button>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => handleNavigate('/dashboard')}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
           >
             View History
@@ -579,12 +735,12 @@ export function ResultsClient({
             </div>
             <div className="p-5">
               <div className="flex justify-center mb-4">
-                <AtsScoreRing score={optimization.ats_score} />
+                <AtsScoreRing score={liveScore} />
               </div>
 
               {/* Feature 5: Score Breakdown */}
               <ScoreBreakdown
-                atsScore={optimization.ats_score}
+                atsScore={liveScore}
                 matched={matched}
                 missing={missing}
               />
@@ -800,7 +956,13 @@ export function ResultsClient({
             </div>
             <div className={`p-4 transition-opacity duration-200 ${isViewTransitioning ? 'opacity-0' : 'opacity-100'}`}>
               {displayView === 'optimized' ? (
-                <CvPreview cv={optimization.optimized_cv_json} />
+                <EditableCvPreview
+                  cv={editedCv}
+                  onChange={handleCvChange}
+                  editingExperienceIdx={editingExperienceIdx}
+                  onSetEditingExperience={setEditingExperienceIdx}
+                  missingKeywords={liveMissing}
+                />
               ) : (
                 <>
                   {pdfState === 'loading' && (
@@ -890,6 +1052,26 @@ export function ResultsClient({
         </div>
 
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium ${
+            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 }

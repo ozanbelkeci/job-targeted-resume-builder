@@ -14,10 +14,17 @@ export interface Resume {
 }
 
 export interface OptimizedCvExperience {
+  id?: string;
   title: string;
   company: string;
   duration: string;
   bullets: string[];
+}
+
+export interface LiveScoreResult {
+  score: number;
+  matched: string[];
+  missing: string[];
 }
 
 export interface OptimizedCvEducation {
