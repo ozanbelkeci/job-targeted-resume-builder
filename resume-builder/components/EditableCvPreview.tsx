@@ -136,8 +136,8 @@ export function EditableCvPreview({
   const [addContactKey, setAddContactKey] = useState<ContactKey>('email');
   const [addContactVal, setAddContactVal] = useState('');
   const [showNewExpForm, setShowNewExpForm] = useState(false);
-  const [newExp, setNewExp] = useState<{ title: string; company: string; duration: string }>({
-    title: '', company: '', duration: '',
+  const [newExp, setNewExp] = useState<{ title: string; company: string; startDate: string; endDate: string }>({
+    title: '', company: '', startDate: '', endDate: '',
   });
 
   const skillsIsArray = Array.isArray(cv.skills);
@@ -192,11 +192,13 @@ export function EditableCvPreview({
     const entry = emptyExperience();
     entry.title = newExp.title.trim() || 'New Position';
     entry.company = newExp.company.trim() || 'Company';
-    entry.duration = newExp.duration.trim() || '';
+    const start = newExp.startDate.trim();
+    const end = newExp.endDate.trim();
+    entry.duration = start && end ? `${start} – ${end}` : start || end || '';
     const updated = [...cv.experience, entry];
     onChange({ ...cv, experience: updated });
     setShowNewExpForm(false);
-    setNewExp({ title: '', company: '', duration: '' });
+    setNewExp({ title: '', company: '', startDate: '', endDate: '' });
     onSetEditingExperience(updated.length - 1);
   }
 
@@ -220,22 +222,22 @@ export function EditableCvPreview({
         </div>
 
         {/* Contact info — editable */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-          {activeContacts.map(({ key }, i) => (
-            <span key={key} className="flex items-center gap-1 text-xs">
-              {i > 0 && <span className="text-gray-300">·</span>}
+        <div className="mt-2 space-y-1">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {activeContacts.map(({ key }) => (
               <ContactItem
+                key={key}
                 value={(cv[key] as string) ?? ''}
                 onEdit={(v) => handleContactEdit(key, v)}
                 onDelete={() => handleContactDelete(key)}
               />
-            </span>
-          ))}
+            ))}
+          </div>
 
-          {/* Add contact */}
+          {/* Add contact — own row, always below the contact list */}
           {availableContacts.length > 0 && (
             showAddContact ? (
-              <span className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 pt-0.5">
                 <select
                   value={addContactKey}
                   onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
@@ -254,7 +256,7 @@ export function EditableCvPreview({
                     if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
                   }}
                   placeholder="Value..."
-                  className="text-xs border border-[#1E3A5F]/30 rounded px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                  className="text-xs border border-[#1E3A5F]/30 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
                 />
                 <button
                   onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
@@ -268,16 +270,13 @@ export function EditableCvPreview({
                 >
                   Cancel
                 </button>
-              </span>
+              </div>
             ) : (
               <button
-                onClick={() => {
-                  setAddContactKey(availableContacts[0].key);
-                  setShowAddContact(true);
-                }}
-                className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded px-1.5 py-0.5 transition-colors"
+                onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
+                className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded px-1.5 py-0.5 transition-colors mt-0.5"
               >
-                <span className="text-sm leading-none">+</span> Add
+                <span className="text-sm leading-none">+</span> Add contact
               </button>
             )
           )}
@@ -359,12 +358,21 @@ export function EditableCvPreview({
                 placeholder="Company name"
                 className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
               />
-              <input
-                value={newExp.duration}
-                onChange={(e) => setNewExp((p) => ({ ...p, duration: e.target.value }))}
-                placeholder="Duration (e.g. Jan 2022 – Present)"
-                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  value={newExp.startDate}
+                  onChange={(e) => setNewExp((p) => ({ ...p, startDate: e.target.value }))}
+                  placeholder="Start (e.g. Jan 2022)"
+                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                />
+                <span className="text-gray-400 text-xs font-medium select-none">–</span>
+                <input
+                  value={newExp.endDate}
+                  onChange={(e) => setNewExp((p) => ({ ...p, endDate: e.target.value }))}
+                  placeholder="End or Present"
+                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                />
+              </div>
               <div className="flex items-center gap-2 pt-0.5">
                 <button
                   onClick={handleSaveNewExp}
@@ -373,7 +381,7 @@ export function EditableCvPreview({
                   Add Experience
                 </button>
                 <button
-                  onClick={() => { setShowNewExpForm(false); setNewExp({ title: '', company: '', duration: '' }); }}
+                  onClick={() => { setShowNewExpForm(false); setNewExp({ title: '', company: '', startDate: '', endDate: '' }); }}
                   className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   Cancel
