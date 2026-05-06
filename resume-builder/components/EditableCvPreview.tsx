@@ -1,9 +1,103 @@
 'use client';
 
-import type { OptimizedCv, CvSkills } from '@/types';
+import { useState, useRef } from 'react';
+import type { OptimizedCv, CvSkills, OptimizedCvExperience } from '@/types';
 import { SummaryEditor } from '@/components/editing/SummaryEditor';
 import { SkillsEditor } from '@/components/editing/SkillsEditor';
 import { BulletsEditor } from '@/components/editing/BulletsEditor';
+
+// ─── Contact field map ───────────────────────────────────────
+
+type ContactKey = 'email' | 'phone' | 'location' | 'linkedin' | 'github' | 'portfolio' | 'website';
+
+const CONTACT_FIELDS: { key: ContactKey; label: string }[] = [
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'location', label: 'Location' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'github', label: 'GitHub' },
+  { key: 'portfolio', label: 'Portfolio' },
+  { key: 'website', label: 'Website' },
+];
+
+// ─── Shared single-line inline editor ───────────────────────
+
+function InlineEditor({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setEditing(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' || e.key === 'Enter') setEditing(false);
+        }}
+        placeholder={placeholder}
+        className={`bg-transparent border-b border-[#1E3A5F]/50 focus:outline-none focus:border-[#1E3A5F] min-w-[80px] ${className ?? ''}`}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`group/ie cursor-text inline-flex items-center gap-1 hover:text-[#1E3A5F]/80 transition-colors ${className ?? ''}`}
+      onClick={() => setEditing(true)}
+    >
+      {value || <span className="text-gray-300 italic text-xs">{placeholder}</span>}
+      <svg
+        className="w-3 h-3 text-gray-300 opacity-0 group-hover/ie:opacity-100 transition-opacity flex-shrink-0"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+      </svg>
+    </span>
+  );
+}
+
+// ─── Contact item row ────────────────────────────────────────
+
+function ContactItem({
+  value,
+  onEdit,
+  onDelete,
+}: {
+  value: string;
+  onEdit: (v: string) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <span className="group/ci flex items-center gap-0.5">
+      <InlineEditor value={value} onChange={onEdit} className="text-xs text-gray-500" />
+      <button
+        onClick={onDelete}
+        className="opacity-0 group-hover/ci:opacity-100 transition-opacity text-gray-300 hover:text-red-400 ml-0.5"
+        aria-label="Remove"
+      >
+        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
+// ─── Types & helpers ─────────────────────────────────────────
 
 interface EditableCvPreviewProps {
   cv: OptimizedCv;
@@ -20,26 +114,64 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+function emptyExperience(): OptimizedCvExperience {
+  return {
+    id: `exp-new-${Date.now()}`,
+    title: '',
+    company: '',
+    duration: '',
+    bullets: [''],
+  };
+}
+
+// ─── Main component ──────────────────────────────────────────
+
 export function EditableCvPreview({
   cv,
   onChange,
   editingExperienceIdx,
   onSetEditingExperience,
 }: EditableCvPreviewProps) {
-  const contactLinks = [
-    cv.email,
-    cv.phone,
-    cv.location,
-    cv.linkedin,
-    cv.github,
-    cv.website,
-    cv.portfolio,
-  ].filter(Boolean);
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [addContactKey, setAddContactKey] = useState<ContactKey>('email');
+  const [addContactVal, setAddContactVal] = useState('');
+  const [showNewExpForm, setShowNewExpForm] = useState(false);
+  const [newExp, setNewExp] = useState<{ title: string; company: string; duration: string }>({
+    title: '', company: '', duration: '',
+  });
 
   const skillsIsArray = Array.isArray(cv.skills);
   const hasSkills = skillsIsArray
     ? (cv.skills as string[]).length > 0
     : Object.values(cv.skills as CvSkills).some((a) => a.length > 0);
+
+  // Active & available contact fields
+  const activeContacts = CONTACT_FIELDS.filter(({ key }) => {
+    const val = cv[key];
+    return val !== null && val !== undefined && val !== '';
+  });
+  const availableContacts = CONTACT_FIELDS.filter(({ key }) => !cv[key]);
+
+  // ─── handlers ────────────────────────────────────────────
+
+  function handleTitleChange(v: string) {
+    onChange({ ...cv, job_title: v || undefined });
+  }
+
+  function handleContactEdit(key: ContactKey, v: string) {
+    onChange({ ...cv, [key]: v || null });
+  }
+
+  function handleContactDelete(key: ContactKey) {
+    onChange({ ...cv, [key]: null });
+  }
+
+  function handleAddContact() {
+    if (!addContactVal.trim()) return;
+    onChange({ ...cv, [addContactKey]: addContactVal.trim() });
+    setAddContactVal('');
+    setShowAddContact(false);
+  }
 
   function handleSummaryChange(v: string) {
     onChange({ ...cv, summary: v });
@@ -56,93 +188,210 @@ export function EditableCvPreview({
     onChange({ ...cv, experience: updatedExp });
   }
 
+  function handleSaveNewExp() {
+    const entry = emptyExperience();
+    entry.title = newExp.title.trim() || 'New Position';
+    entry.company = newExp.company.trim() || 'Company';
+    entry.duration = newExp.duration.trim() || '';
+    const updated = [...cv.experience, entry];
+    onChange({ ...cv, experience: updated });
+    setShowNewExpForm(false);
+    setNewExp({ title: '', company: '', duration: '' });
+    onSetEditingExperience(updated.length - 1);
+  }
+
+  // ─── render ──────────────────────────────────────────────
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm font-sans max-h-[72vh] overflow-y-auto space-y-5">
-      {/* Header — non-editable */}
+
+      {/* ── Header ── */}
       <div className="border-b-2 border-[#1E3A5F] pb-4">
         <h1 className="text-xl font-bold text-[#1E3A5F] leading-tight">{cv.name}</h1>
-        {cv.job_title && <p className="text-sm text-gray-500 font-medium mt-0.5">{cv.job_title}</p>}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-gray-500 text-xs">
-          {contactLinks.map((link, i) => (
-            <span key={i} className="flex items-center gap-1">
+
+        {/* Job title — editable */}
+        <div className="mt-0.5">
+          <InlineEditor
+            value={cv.job_title ?? ''}
+            onChange={handleTitleChange}
+            placeholder="Add job title..."
+            className="text-sm text-gray-500 font-medium"
+          />
+        </div>
+
+        {/* Contact info — editable */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+          {activeContacts.map(({ key }, i) => (
+            <span key={key} className="flex items-center gap-1 text-xs">
               {i > 0 && <span className="text-gray-300">·</span>}
-              {link}
+              <ContactItem
+                value={(cv[key] as string) ?? ''}
+                onEdit={(v) => handleContactEdit(key, v)}
+                onDelete={() => handleContactDelete(key)}
+              />
             </span>
           ))}
+
+          {/* Add contact */}
+          {availableContacts.length > 0 && (
+            showAddContact ? (
+              <span className="flex items-center gap-1.5">
+                <select
+                  value={addContactKey}
+                  onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
+                  className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                >
+                  {availableContacts.map(({ key, label }) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <input
+                  autoFocus
+                  value={addContactVal}
+                  onChange={(e) => setAddContactVal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddContact();
+                    if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
+                  }}
+                  placeholder="Value..."
+                  className="text-xs border border-[#1E3A5F]/30 rounded px-2 py-0.5 w-32 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                />
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
+                  className="text-xs bg-[#1E3A5F] text-white px-2 py-0.5 rounded hover:bg-[#162d4a] transition-colors"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => { setShowAddContact(false); setAddContactVal(''); }}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                onClick={() => {
+                  setAddContactKey(availableContacts[0].key);
+                  setShowAddContact(true);
+                }}
+                className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded px-1.5 py-0.5 transition-colors"
+              >
+                <span className="text-sm leading-none">+</span> Add
+              </button>
+            )
+          )}
         </div>
       </div>
 
-      {/* Summary — editable */}
+      {/* ── Summary — editable ── */}
       {cv.summary && (
         <section>
           <SectionTitle>Professional Summary</SectionTitle>
-          <SummaryEditor
-            value={cv.summary}
-            onChange={handleSummaryChange}
-          />
+          <SummaryEditor value={cv.summary} onChange={handleSummaryChange} />
         </section>
       )}
 
-      {/* Experience — bullets editable */}
-      {cv.experience.length > 0 && (
-        <section>
-          <SectionTitle>Experience</SectionTitle>
-          <div className="space-y-4">
-            {cv.experience.map((exp, i) => {
-              const isActive = editingExperienceIdx === i;
-              const isOther = editingExperienceIdx !== null && !isActive;
-              return (
-                <div
-                  key={exp.id ?? i}
-                  className={`transition-all duration-200 rounded-lg p-1.5 -mx-1.5 ${
-                    isActive
-                      ? 'ring-2 ring-[#1E3A5F]/25 bg-blue-50/20'
-                      : isOther
-                      ? 'opacity-60'
-                      : ''
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-2 mb-1">
-                    <div>
-                      <p className="font-semibold text-gray-900 text-xs">{exp.title}</p>
-                      <p className="text-gray-500 text-xs">{exp.company}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
-                      {!isActive && (
-                        <button
-                          onClick={() => onSetEditingExperience(i)}
-                          className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
-                        >
-                          Edit bullets
-                        </button>
-                      )}
-                    </div>
+      {/* ── Experience — bullets editable + add new ── */}
+      <section>
+        <SectionTitle>Experience</SectionTitle>
+        <div className="space-y-4">
+          {cv.experience.map((exp, i) => {
+            const isActive = editingExperienceIdx === i;
+            const isOther = editingExperienceIdx !== null && !isActive;
+            return (
+              <div
+                key={exp.id ?? i}
+                className={`transition-all duration-200 rounded-lg p-1.5 -mx-1.5 ${
+                  isActive ? 'ring-2 ring-[#1E3A5F]/25 bg-blue-50/20' : isOther ? 'opacity-60' : ''
+                }`}
+              >
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <div>
+                    <p className="font-semibold text-gray-900 text-xs">{exp.title}</p>
+                    <p className="text-gray-500 text-xs">{exp.company}</p>
                   </div>
-
-                  {isActive ? (
-                    <BulletsEditor
-                      bullets={exp.bullets}
-                      onChange={(b) => handleBulletsChange(i, b)}
-                      onDone={() => onSetEditingExperience(null)}
-                    />
-                  ) : (
-                    <ul className="mt-1 space-y-1 pl-3">
-                      {exp.bullets.map((bullet, j) => (
-                        <li key={j} className="text-gray-700 leading-relaxed list-disc text-xs">
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
+                    {!isActive && (
+                      <button
+                        onClick={() => onSetEditingExperience(i)}
+                        className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
+                      >
+                        Edit bullets
+                      </button>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
-      {/* Education — non-editable */}
+                {isActive ? (
+                  <BulletsEditor
+                    bullets={exp.bullets}
+                    onChange={(b) => handleBulletsChange(i, b)}
+                    onDone={() => onSetEditingExperience(null)}
+                  />
+                ) : (
+                  <ul className="mt-1 space-y-1 pl-3">
+                    {exp.bullets.map((bullet, j) => (
+                      <li key={j} className="text-gray-700 leading-relaxed list-disc text-xs">
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add new experience */}
+          {showNewExpForm ? (
+            <div className="rounded-lg border border-[#1E3A5F]/20 bg-blue-50/20 p-3 space-y-2">
+              <input
+                autoFocus
+                value={newExp.title}
+                onChange={(e) => setNewExp((p) => ({ ...p, title: e.target.value }))}
+                placeholder="Job title (e.g. Senior Developer)"
+                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+              />
+              <input
+                value={newExp.company}
+                onChange={(e) => setNewExp((p) => ({ ...p, company: e.target.value }))}
+                placeholder="Company name"
+                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+              />
+              <input
+                value={newExp.duration}
+                onChange={(e) => setNewExp((p) => ({ ...p, duration: e.target.value }))}
+                placeholder="Duration (e.g. Jan 2022 – Present)"
+                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+              />
+              <div className="flex items-center gap-2 pt-0.5">
+                <button
+                  onClick={handleSaveNewExp}
+                  className="text-xs bg-[#1E3A5F] text-white px-3 py-1 rounded hover:bg-[#162d4a] transition-colors font-medium"
+                >
+                  Add Experience
+                </button>
+                <button
+                  onClick={() => { setShowNewExpForm(false); setNewExp({ title: '', company: '', duration: '' }); }}
+                  className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNewExpForm(true)}
+              className="w-full text-xs text-gray-400 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded-lg py-2 transition-colors flex items-center justify-center gap-1"
+            >
+              <span className="text-sm leading-none">+</span> Add Experience
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* ── Education — non-editable ── */}
       {cv.education.length > 0 && (
         <section>
           <SectionTitle>Education</SectionTitle>
@@ -160,18 +409,15 @@ export function EditableCvPreview({
         </section>
       )}
 
-      {/* Skills — editable */}
+      {/* ── Skills — editable ── */}
       {hasSkills && (
         <section>
           <SectionTitle>Skills</SectionTitle>
-          <SkillsEditor
-            skills={cv.skills}
-            onChange={handleSkillsChange}
-          />
+          <SkillsEditor skills={cv.skills} onChange={handleSkillsChange} />
         </section>
       )}
 
-      {/* References — non-editable, backward compat */}
+      {/* ── References — non-editable, backward compat ── */}
       {cv.references && cv.references.length > 0 && (
         <section>
           <SectionTitle>References</SectionTitle>
