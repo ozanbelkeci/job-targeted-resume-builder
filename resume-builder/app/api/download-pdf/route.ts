@@ -3,8 +3,9 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateResumePdf } from '@/lib/pdf-generator';
-import type { Optimization } from '@/types';
-import { PDF_DOWNLOAD_FILENAME } from '@/lib/constants';
+import type { Optimization, TemplateId, CvTheme } from '@/types';
+
+const VALID_TEMPLATES: TemplateId[] = ['classic', 'modern', 'minimal'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,6 +25,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Optimization ID is required' }, { status: 400 });
     }
 
+    const rawTemplate = searchParams.get('template') ?? 'classic';
+    const rawColor    = searchParams.get('color')    ?? '#1E3A5F';
+
+    const safeTemplate: TemplateId = VALID_TEMPLATES.includes(rawTemplate as TemplateId)
+      ? (rawTemplate as TemplateId)
+      : 'classic';
+
+    const safeColor = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : '#1E3A5F';
+
+    const theme: CvTheme = { templateId: safeTemplate, accentColor: safeColor };
+
     const { data: optimization } = await supabase
       .from('optimizations')
       .select('optimized_cv_json, job_title, job_company')
@@ -35,11 +47,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Optimization not found' }, { status: 404 });
     }
 
-    const pdfBuffer = await generateResumePdf(optimization.optimized_cv_json);
+    const pdfBuffer = await generateResumePdf(optimization.optimized_cv_json, theme);
 
-    const filename = optimization.job_title
-      ? `resume-${optimization.job_title.toLowerCase().replace(/\s+/g, '-')}.pdf`
-      : PDF_DOWNLOAD_FILENAME;
+    const slug = optimization.job_title
+      ? optimization.job_title.toLowerCase().replace(/\s+/g, '-')
+      : 'resume';
+
+    const filename = `resume-${safeTemplate}-${slug}.pdf`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

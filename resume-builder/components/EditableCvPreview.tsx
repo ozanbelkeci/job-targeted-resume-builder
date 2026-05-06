@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import type { OptimizedCv, CvSkills, OptimizedCvExperience } from '@/types';
+import type { OptimizedCv, CvSkills, OptimizedCvExperience, CvTheme } from '@/types';
 import { SummaryEditor } from '@/components/editing/SummaryEditor';
 import { SkillsEditor } from '@/components/editing/SkillsEditor';
 import { BulletsEditor } from '@/components/editing/BulletsEditor';
+import { DEFAULT_THEME } from '@/lib/cv-templates';
 
 // ─── Contact field map ───────────────────────────────────────
 
@@ -48,14 +49,14 @@ function InlineEditor({
           if (e.key === 'Escape' || e.key === 'Enter') setEditing(false);
         }}
         placeholder={placeholder}
-        className={`bg-transparent border-b border-[#1E3A5F]/50 focus:outline-none focus:border-[#1E3A5F] min-w-[80px] ${className ?? ''}`}
+        className={`bg-transparent border-b border-gray-300 focus:outline-none focus:border-gray-500 min-w-[80px] ${className ?? ''}`}
       />
     );
   }
 
   return (
     <span
-      className={`group/ie cursor-text inline-flex items-center gap-1 hover:text-[#1E3A5F]/80 transition-colors ${className ?? ''}`}
+      className={`group/ie cursor-text inline-flex items-center gap-1 hover:opacity-70 transition-opacity ${className ?? ''}`}
       onClick={() => setEditing(true)}
     >
       {value || <span className="text-gray-300 italic text-xs">{placeholder}</span>}
@@ -104,11 +105,36 @@ interface EditableCvPreviewProps {
   onChange: (updated: OptimizedCv, immediate?: boolean) => void;
   editingExperienceIdx: number | null;
   onSetEditingExperience: (idx: number | null) => void;
+  theme?: CvTheme;
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, theme }: { children: React.ReactNode; theme: CvTheme }) {
+  if (theme.templateId === 'modern') {
+    return (
+      <h2
+        className="text-xs font-bold uppercase tracking-wide mb-2"
+        style={{ color: theme.accentColor }}
+      >
+        {children}
+      </h2>
+    );
+  }
+  if (theme.templateId === 'minimal') {
+    return (
+      <h2
+        className="text-[10px] font-normal uppercase tracking-[0.2em] border-b border-gray-200 pb-1.5 mb-3 text-gray-400"
+        style={{ fontVariant: 'small-caps' } as React.CSSProperties}
+      >
+        {children}
+      </h2>
+    );
+  }
+  // classic (default)
   return (
-    <h2 className="text-xs font-bold text-[#1E3A5F] uppercase tracking-wider mb-2 pb-1 border-b border-gray-200">
+    <h2
+      className="text-[10px] font-bold uppercase tracking-widest border-b-2 pb-1 mb-2"
+      style={{ color: theme.accentColor, borderColor: theme.accentColor }}
+    >
       {children}
     </h2>
   );
@@ -131,6 +157,7 @@ export function EditableCvPreview({
   onChange,
   editingExperienceIdx,
   onSetEditingExperience,
+  theme = DEFAULT_THEME,
 }: EditableCvPreviewProps) {
   const [showAddContact, setShowAddContact] = useState(false);
   const [addContactKey, setAddContactKey] = useState<ContactKey>('email');
@@ -145,7 +172,6 @@ export function EditableCvPreview({
     ? (cv.skills as string[]).length > 0
     : Object.values(cv.skills as CvSkills).some((a) => a.length > 0);
 
-  // Active & available contact fields
   const activeContacts = CONTACT_FIELDS.filter(({ key }) => {
     const val = cv[key];
     return val !== null && val !== undefined && val !== '';
@@ -202,14 +228,40 @@ export function EditableCvPreview({
     onSetEditingExperience(updated.length - 1);
   }
 
+  // ─── template-driven container classes ──────────────────
+
+  const isModern  = theme.templateId === 'modern';
+  const isMinimal = theme.templateId === 'minimal';
+  const isClassic = theme.templateId === 'classic';
+
+  const containerClass = [
+    'bg-white rounded-xl border border-gray-100 text-sm font-sans max-h-[72vh] overflow-y-auto',
+    isModern  ? 'pl-7 pr-6 py-6 border-l-4 space-y-5' : '',
+    isMinimal ? 'p-8 space-y-7'                        : '',
+    isClassic ? 'p-6 space-y-5'                        : '',
+  ].join(' ');
+
+  const containerStyle: React.CSSProperties = isModern
+    ? { borderLeftColor: theme.accentColor }
+    : {};
+
   // ─── render ──────────────────────────────────────────────
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-6 text-sm font-sans max-h-[72vh] overflow-y-auto space-y-5">
+    <div className={containerClass} style={containerStyle}>
 
       {/* ── Header ── */}
-      <div className="border-b-2 border-[#1E3A5F] pb-4">
-        <h1 className="text-xl font-bold text-[#1E3A5F] leading-tight">{cv.name}</h1>
+      <div
+        className={`border-b-2 pb-4 ${isClassic ? 'text-center' : ''}`}
+        style={{ borderColor: isClassic ? theme.accentColor : '#e5e7eb' }}
+      >
+        {/* Name */}
+        <h1
+          className={`font-bold leading-tight ${isMinimal ? 'text-2xl tracking-wide' : 'text-xl'}`}
+          style={isClassic ? { color: '#111' } : { color: theme.accentColor }}
+        >
+          {cv.name}
+        </h1>
 
         {/* Job title — editable */}
         <div className="mt-0.5">
@@ -223,7 +275,7 @@ export function EditableCvPreview({
 
         {/* Contact info — editable */}
         <div className="mt-2 space-y-1">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isClassic ? 'justify-center' : ''}`}>
             {activeContacts.map(({ key }) => (
               <ContactItem
                 key={key}
@@ -234,14 +286,13 @@ export function EditableCvPreview({
             ))}
           </div>
 
-          {/* Add contact — own row, always below the contact list */}
           {availableContacts.length > 0 && (
             showAddContact ? (
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className={`flex items-center gap-1.5 pt-0.5 ${isClassic ? 'justify-center' : ''}`}>
                 <select
                   value={addContactKey}
                   onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
-                  className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                  className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 >
                   {availableContacts.map(({ key, label }) => (
                     <option key={key} value={key}>{label}</option>
@@ -256,7 +307,7 @@ export function EditableCvPreview({
                     if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
                   }}
                   placeholder="Value..."
-                  className="text-xs border border-[#1E3A5F]/30 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                  className="text-xs border border-gray-200 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 />
                 <button
                   onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
@@ -272,12 +323,14 @@ export function EditableCvPreview({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
-                className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded px-1.5 py-0.5 transition-colors mt-0.5"
-              >
-                <span className="text-sm leading-none">+</span> Add contact
-              </button>
+              <div className={isClassic ? 'flex justify-center' : ''}>
+                <button
+                  onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
+                  className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-gray-500 border border-dashed border-gray-200 hover:border-gray-300 rounded px-1.5 py-0.5 transition-colors mt-0.5"
+                >
+                  <span className="text-sm leading-none">+</span> Add contact
+                </button>
+              </div>
             )
           )}
         </div>
@@ -286,14 +339,14 @@ export function EditableCvPreview({
       {/* ── Summary — editable ── */}
       {cv.summary && (
         <section>
-          <SectionTitle>Professional Summary</SectionTitle>
+          <SectionTitle theme={theme}>Professional Summary</SectionTitle>
           <SummaryEditor value={cv.summary} onChange={handleSummaryChange} />
         </section>
       )}
 
       {/* ── Experience — bullets editable + add new ── */}
       <section>
-        <SectionTitle>Experience</SectionTitle>
+        <SectionTitle theme={theme}>Experience</SectionTitle>
         <div className="space-y-4">
           {cv.experience.map((exp, i) => {
             const isActive = editingExperienceIdx === i;
@@ -302,7 +355,7 @@ export function EditableCvPreview({
               <div
                 key={exp.id ?? i}
                 className={`transition-all duration-200 rounded-lg p-1.5 -mx-1.5 ${
-                  isActive ? 'ring-2 ring-[#1E3A5F]/25 bg-blue-50/20' : isOther ? 'opacity-60' : ''
+                  isActive ? 'ring-2 ring-gray-200 bg-gray-50/60' : isOther ? 'opacity-60' : ''
                 }`}
               >
                 <div className="flex justify-between items-start gap-2 mb-1">
@@ -358,33 +411,33 @@ export function EditableCvPreview({
 
           {/* Add new experience */}
           {showNewExpForm ? (
-            <div className="rounded-lg border border-[#1E3A5F]/20 bg-blue-50/20 p-3 space-y-2">
+            <div className="rounded-lg border border-gray-200 bg-gray-50/40 p-3 space-y-2">
               <input
                 autoFocus
                 value={newExp.title}
                 onChange={(e) => setNewExp((p) => ({ ...p, title: e.target.value }))}
                 placeholder="Job title (e.g. Senior Developer)"
-                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
               />
               <input
                 value={newExp.company}
                 onChange={(e) => setNewExp((p) => ({ ...p, company: e.target.value }))}
                 placeholder="Company name"
-                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                className="w-full text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
               />
               <div className="flex items-center gap-2">
                 <input
                   value={newExp.startDate}
                   onChange={(e) => setNewExp((p) => ({ ...p, startDate: e.target.value }))}
                   placeholder="Start (e.g. Jan 2022)"
-                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 />
                 <span className="text-gray-400 text-xs font-medium select-none">–</span>
                 <input
                   value={newExp.endDate}
                   onChange={(e) => setNewExp((p) => ({ ...p, endDate: e.target.value }))}
                   placeholder="End or Present"
-                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1E3A5F]/30"
+                  className="flex-1 text-xs border border-gray-200 rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
                 />
               </div>
               <div className="flex items-center gap-2 pt-0.5">
@@ -405,7 +458,7 @@ export function EditableCvPreview({
           ) : (
             <button
               onClick={() => setShowNewExpForm(true)}
-              className="w-full text-xs text-gray-400 hover:text-[#1E3A5F] border border-dashed border-gray-200 hover:border-[#1E3A5F]/40 rounded-lg py-2 transition-colors flex items-center justify-center gap-1"
+              className="w-full text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 hover:border-gray-300 rounded-lg py-2 transition-colors flex items-center justify-center gap-1"
             >
               <span className="text-sm leading-none">+</span> Add Experience
             </button>
@@ -416,7 +469,7 @@ export function EditableCvPreview({
       {/* ── Education — non-editable ── */}
       {cv.education.length > 0 && (
         <section>
-          <SectionTitle>Education</SectionTitle>
+          <SectionTitle theme={theme}>Education</SectionTitle>
           <div className="space-y-2">
             {cv.education.map((edu, i) => (
               <div key={i} className="flex justify-between items-start gap-2">
@@ -434,15 +487,15 @@ export function EditableCvPreview({
       {/* ── Skills — editable ── */}
       {hasSkills && (
         <section>
-          <SectionTitle>Skills</SectionTitle>
+          <SectionTitle theme={theme}>Skills</SectionTitle>
           <SkillsEditor skills={cv.skills} onChange={handleSkillsChange} />
         </section>
       )}
 
-      {/* ── References — non-editable, backward compat ── */}
+      {/* ── References — non-editable ── */}
       {cv.references && cv.references.length > 0 && (
         <section>
-          <SectionTitle>References</SectionTitle>
+          <SectionTitle theme={theme}>References</SectionTitle>
           <div className="space-y-2">
             {cv.references.map((ref, i) => (
               <div key={i} className="flex items-start justify-between gap-2">

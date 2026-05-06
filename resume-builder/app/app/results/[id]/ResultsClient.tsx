@@ -6,7 +6,9 @@ import debounce from 'lodash.debounce';
 import { AtsScoreRing } from '@/components/AtsScoreRing';
 import { EditableCvPreview } from '@/components/EditableCvPreview';
 import { calculateLiveScore } from '@/lib/ats-calculator';
-import type { Optimization, ChecklistState, OptimizedCv, CvSkills, LiveScoreResult } from '@/types';
+import type { Optimization, ChecklistState, OptimizedCv, CvSkills, LiveScoreResult, CvTheme, TemplateId } from '@/types';
+import { DEFAULT_THEME, COLOR_PALETTES } from '@/lib/cv-templates';
+import { TemplateSelector } from '@/components/TemplateSelector';
 
 // ─── helpers ────────────────────────────────────────────────
 
@@ -424,6 +426,15 @@ export function ResultsClient({
     }
   }, [optimization.id]);
 
+  // Template + color selection (localStorage)
+  const [cvTheme, setCvTheme] = useState<CvTheme>(DEFAULT_THEME);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('cv_theme');
+    if (!stored) return;
+    try { setCvTheme(JSON.parse(stored) as CvTheme); } catch { /* ignore */ }
+  }, []);
+
   const updateChecklist = useCallback(
     (key: keyof ChecklistState, value: boolean) => {
       setChecklist((prev) => {
@@ -434,6 +445,19 @@ export function ResultsClient({
     },
     [optimization.id],
   );
+
+  function handleTemplateChange(templateId: TemplateId) {
+    const accentColor = COLOR_PALETTES[templateId][0];
+    const next: CvTheme = { templateId, accentColor };
+    setCvTheme(next);
+    localStorage.setItem('cv_theme', JSON.stringify(next));
+  }
+
+  function handleColorChange(accentColor: string) {
+    const next: CvTheme = { ...cvTheme, accentColor };
+    setCvTheme(next);
+    localStorage.setItem('cv_theme', JSON.stringify(next));
+  }
 
   // Feature 1: toggle keyword selection
   function toggleKeyword(kw: string) {
@@ -622,7 +646,7 @@ export function ResultsClient({
               )}
             </div>
             <a
-              href={`/api/download-pdf?id=${optimization.id}`}
+              href={`/api/download-pdf?id=${optimization.id}&template=${cvTheme.templateId}&color=${encodeURIComponent(cvTheme.accentColor)}`}
               className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -955,12 +979,21 @@ export function ResultsClient({
               </div>
             </div>
             <div className={`p-4 transition-opacity duration-200 ${isViewTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+              {displayView === 'optimized' && (
+                <TemplateSelector
+                  selectedTemplate={cvTheme.templateId}
+                  selectedColor={cvTheme.accentColor}
+                  onTemplateChange={handleTemplateChange}
+                  onColorChange={handleColorChange}
+                />
+              )}
               {displayView === 'optimized' ? (
                 <EditableCvPreview
                   cv={editedCv}
                   onChange={handleCvChange}
                   editingExperienceIdx={editingExperienceIdx}
                   onSetEditingExperience={setEditingExperienceIdx}
+                  theme={cvTheme}
                 />
               ) : (
                 <>

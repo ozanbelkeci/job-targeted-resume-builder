@@ -143,3 +143,10 @@ export interface ApiErrorResponse {
 }
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+export type TemplateId = 'classic' | 'modern' | 'minimal';
+
+export interface CvTheme {
+  templateId: TemplateId;
+  accentColor: string;
+}
