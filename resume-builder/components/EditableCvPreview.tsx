@@ -258,7 +258,7 @@ export function EditableCvPreview({
         {/* Name */}
         <h1
           className={`font-bold leading-tight ${isMinimal ? 'text-2xl tracking-wide' : 'text-xl'}`}
-          style={isClassic ? { color: '#111' } : { color: theme.accentColor }}
+          style={{ color: theme.accentColor }}
         >
           {cv.name}
         </h1>
