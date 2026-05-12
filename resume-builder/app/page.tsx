@@ -444,7 +444,7 @@ export default async function LandingPage() {
 
           <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-xs text-gray-400">© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
-            <p className="text-xs text-gray-400">Job-targeted resume optimization powered by AI.</p>
+            <p className="text-xs text-gray-400">AI-powered resumes tailored to every job.</p>
           </div>
         </div>
       </footer>
