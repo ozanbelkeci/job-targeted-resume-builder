@@ -6,6 +6,7 @@ import { LandingNavbar } from '@/components/LandingNavbar';
 import { HeroCvStack } from '@/components/HeroCvStack';
 import { LandingBackground } from '@/components/LandingBackground';
 import { RotatingSubtitle } from '@/components/RotatingSubtitle';
+import { AnimatedStats } from '@/components/AnimatedStats';
 
 
 export default async function LandingPage() {
@@ -127,18 +128,7 @@ export default async function LandingPage() {
       {/* ── Stats Bar ─────────────────────────────────────── */}
       <div className="relative bg-gradient-to-r from-white via-[#F8FAFC] to-white border-y border-gray-100 overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-200/50 to-transparent" />
-        <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-3 divide-x divide-gray-100">
-          {[
-            { value: '10,000+', label: 'Resumes Optimized' },
-            { value: '+34 pts', label: 'Avg. ATS Improvement' },
-            { value: '< 3 min', label: 'Time to Optimize' },
-          ].map(({ value, label }) => (
-            <div key={label} className="flex flex-col items-center px-6 text-center">
-              <span className="text-3xl lg:text-4xl font-bold text-[#1E3A5F] mb-1 tabular-nums">{value}</span>
-              <span className="text-sm text-gray-500">{label}</span>
-            </div>
-          ))}
-        </div>
+        <AnimatedStats />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-100/40 to-transparent" />
       </div>
 
