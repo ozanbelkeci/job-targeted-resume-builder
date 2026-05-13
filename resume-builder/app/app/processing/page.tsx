@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { MorphingSquare } from '@/components/morphing-square';
 
 const STEPS = [
   'Reading your resume...',
@@ -92,7 +94,12 @@ export default function ProcessingPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
-        <div className="bg-white rounded-2xl border border-red-200 p-10 max-w-md w-full text-center shadow-sm">
+        <motion.div
+          className="bg-white rounded-2xl border border-red-200 p-10 max-w-md w-full text-center shadow-sm"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -106,37 +113,41 @@ export default function ProcessingPage() {
           >
             Try Again
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-6">
-      <div className="bg-white rounded-2xl border border-gray-200 p-10 max-w-md w-full text-center shadow-sm">
-        {/* Spinner */}
-        <div className="relative w-20 h-20 mx-auto mb-8">
-          <svg className="animate-spin w-20 h-20 text-[#1E3A5F]" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-10" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            <path
-              className="opacity-80"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[#1E3A5F] font-bold text-sm">AI</span>
-          </div>
+      <motion.div
+        className="bg-white rounded-2xl border border-gray-200 p-10 max-w-md w-full text-center shadow-sm"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+      >
+        {/* MorphingSquare loader */}
+        <div className="flex justify-center mb-8">
+          <MorphingSquare className="w-14 h-14 bg-[#1E3A5F]" />
         </div>
 
         <h2 className="text-xl font-semibold text-[#1E3A5F] mb-2">Optimizing Your Resume</h2>
         <p className="text-gray-400 text-sm mb-8">This usually takes 15-30 seconds</p>
 
         {/* Steps */}
-        <div className="space-y-3 text-left">
+        <motion.div
+          className="space-y-3 text-left"
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } }}
+        >
           {STEPS.map((step, i) => (
-            <div
+            <motion.div
               key={step}
+              variants={{
+                hidden: { opacity: 0, x: -8 },
+                visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+              }}
               className={`flex items-center gap-3 text-sm transition-all duration-500 ${
                 i < currentStep
                   ? 'text-green-600'
@@ -160,14 +171,14 @@ export default function ProcessingPage() {
                 )}
               </span>
               {step}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <p className="mt-8 text-xs text-gray-400">
           Please don&apos;t close this tab — your optimization is in progress.
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { DataTable } from '@/components/basic-data-table';
 import {
@@ -137,7 +138,12 @@ export function DashboardClient({ optimizations: initial }: Props) {
 
   if (rows.length === 0) {
     return (
-      <div className="relative bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm overflow-hidden">
+      <motion.div
+        className="relative bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm overflow-hidden"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut', delay: 0.15 }}
+      >
         <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
         <div className="w-16 h-16 rounded-2xl bg-[#1E3A5F]/5 flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-[#1E3A5F]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -152,13 +158,18 @@ export function DashboardClient({ optimizations: initial }: Props) {
         >
           Optimize My Resume →
         </Link>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-2xl shadow-sm">
+      <motion.div
+        className="relative overflow-hidden rounded-2xl shadow-sm"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut', delay: 0.15 }}
+      >
         <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent z-10 pointer-events-none" />
         <DataTable
           data={rows}
@@ -168,7 +179,7 @@ export function DashboardClient({ optimizations: initial }: Props) {
           itemsPerPage={10}
           hoverable
         />
-      </div>
+      </motion.div>
 
       <Dialog open={!!deleteId} onOpenChange={(open: boolean) => !open && setDeleteId(null)}>
         <DialogContent showCloseButton={false}>

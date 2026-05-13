@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { UpgradeModal } from '@/components/UpgradeModal';
@@ -124,7 +125,12 @@ export default function JobPage() {
       <div className="relative w-full max-w-xl">
         <StepIndicator current={2} />
 
-        <div className="relative bg-white rounded-2xl border border-gray-200/80 p-8 shadow-lg glow-ring-navy overflow-hidden">
+        <motion.div
+          className="relative bg-white rounded-2xl border border-gray-200/80 p-8 shadow-lg glow-ring-navy overflow-hidden"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
           {/* Top gradient accent */}
           <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" />
 
@@ -218,19 +224,19 @@ export default function JobPage() {
               </span>
             )}
           </Button>
-        </div>
 
-        {/* Tip */}
-        <div className="mt-4 flex items-start gap-2.5 px-1">
-          <div className="w-5 h-5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          {/* Tip */}
+          <div className="mt-4 flex items-start gap-2.5 px-1">
+            <div className="w-5 h-5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              <span className="font-medium text-gray-500">Tip:</span> Include the full job posting — requirements, responsibilities, and preferred skills — for the best optimization results.
+            </p>
           </div>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            <span className="font-medium text-gray-500">Tip:</span> Include the full job posting — requirements, responsibilities, and preferred skills — for the best optimization results.
-          </p>
-        </div>
+        </motion.div>
       </div>
 
       <UpgradeModal

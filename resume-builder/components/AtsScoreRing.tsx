@@ -20,7 +20,7 @@ function getScoreLabel(score: number) {
 }
 
 export function AtsScoreRing({ score }: AtsScoreRingProps) {
-  const [displayScore, setDisplayScore] = useState(score);
+  const [displayScore, setDisplayScore] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function AtsScoreRing({ score }: AtsScoreRingProps) {
 
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const progress = (score / 100) * circumference;
+  const progress = (displayScore / 100) * circumference;
   const color = getScoreColor(score);
   const label = getScoreLabel(score);
 
@@ -74,7 +74,7 @@ export function AtsScoreRing({ score }: AtsScoreRingProps) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference - progress}
-            style={{ transition: 'stroke-dashoffset 0.6s ease-in-out, stroke 0.4s ease' }}
+            style={{ transition: 'stroke 0.4s ease' }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from '@/components/FileUploader';
+import { MorphingSquare } from '@/components/morphing-square';
 import type { Resume } from '@/types';
 
 function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
@@ -178,18 +180,18 @@ export default function UploadPage() {
       <div className="relative w-full max-w-xl">
         <StepIndicator current={1} />
 
-        <div className="relative bg-white rounded-2xl border border-gray-200/80 p-8 shadow-lg glow-ring-navy overflow-hidden">
+        <motion.div
+          className="relative bg-white rounded-2xl border border-gray-200/80 p-8 shadow-lg glow-ring-navy overflow-hidden"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
           {/* Top gradient accent */}
           <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" />
 
           {isLoadingResumes ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1E3A5F]/5 flex items-center justify-center">
-                <svg className="animate-spin h-5 w-5 text-[#1E3A5F]" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-              </div>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <MorphingSquare className="w-10 h-10 bg-[#1E3A5F]" />
               <p className="text-sm text-gray-400">Loading your resumes…</p>
             </div>
           ) : resumes.length > 0 && !showUploadForm ? (
@@ -199,10 +201,19 @@ export default function UploadPage() {
                 <p className="text-gray-400 text-sm">Select a resume to use, or upload a new one.</p>
               </div>
 
-              <div className="space-y-2.5 mb-6">
+              <motion.div
+                className="space-y-2.5 mb-6"
+                initial="hidden"
+                animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
+              >
                 {resumes.map((resume) => (
-                  <div
+                  <motion.div
                     key={resume.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 8 },
+                      visible: { opacity: 1, y: 0, transition: { duration: 0.28 } },
+                    }}
                     className="group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#1E3A5F]/50 hover:bg-blue-50/20 transition-all duration-150 card-hover-lift"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -243,9 +254,9 @@ export default function UploadPage() {
                         )}
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
 
               <button
                 onClick={() => setShowUploadForm(true)}
@@ -437,7 +448,7 @@ export default function UploadPage() {
               )}
             </>
           )}
-        </div>
+        </motion.div>
 
         {/* Privacy note */}
         <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1.5">

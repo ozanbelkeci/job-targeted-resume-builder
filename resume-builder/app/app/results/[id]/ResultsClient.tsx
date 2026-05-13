@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, type Variants } from 'framer-motion';
 import debounce from 'lodash.debounce';
 import { AtsScoreRing } from '@/components/AtsScoreRing';
 import { EditableCvPreview } from '@/components/EditableCvPreview';
@@ -168,16 +169,30 @@ function OriginalCvDisplay({ text }: { text: string }) {
 // ─── sub-components ─────────────────────────────────────────
 
 function ProgressBar({ label, score }: { label: string; score: number }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const steps = 32;
+    const duration = 900;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      setDisplay(Math.round((score * step) / steps));
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [score]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-gray-500">{label}</span>
-        <span className={`text-xs font-semibold ${txtColor(score)}`}>{score}%</span>
+        <span className={`text-xs font-semibold ${txtColor(score)}`}>{display}%</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-1.5">
         <div
-          className={`h-1.5 rounded-full transition-all duration-700 ${barColor(score)}`}
-          style={{ width: `${score}%` }}
+          className={`h-1.5 rounded-full transition-all duration-[28ms] ${barColor(score)}`}
+          style={{ width: `${display}%` }}
         />
       </div>
     </div>
@@ -601,12 +616,22 @@ export function ResultsClient({
     Object.values(tipInputs).some((v) => v.trim()) ||
     generalContext.trim().length > 0;
 
+  const panelVariants: Variants = {
+    hidden: { opacity: 0, y: 14 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-6 py-8">
-      <div className="max-w-6xl mx-auto">
+      <motion.div
+        className="max-w-6xl mx-auto"
+        initial="hidden"
+        animate="visible"
+        variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+      >
 
         {/* ── Top bar ── */}
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <motion.div variants={panelVariants} className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h1 className="text-xl font-bold text-[#1E3A5F] leading-tight">
               {optimization.job_title}
@@ -681,10 +706,10 @@ export function ResultsClient({
               )}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── Action bar ── */}
-        <div className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <motion.div variants={panelVariants} className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
           {isPro ? (
             <>
               <button
@@ -747,13 +772,13 @@ export function ResultsClient({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        </div>
+        </motion.div>
 
         {/* ── Main grid ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* Left — ATS Panel */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <motion.div variants={panelVariants} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 pt-5 pb-3 border-b border-gray-100">
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ATS Match Score</h2>
             </div>
@@ -948,10 +973,10 @@ export function ResultsClient({
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right — CV Panel */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <motion.div variants={panelVariants} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Feature 2: Before/After toggle */}
             <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Resume Preview</h2>
@@ -1041,11 +1066,11 @@ export function ResultsClient({
                 </>
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Feature 4: Application Checklist */}
-        <div className="mt-5 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <motion.div variants={panelVariants} className="mt-5 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-[#1E3A5F]">Your Application Checklist</h2>
@@ -1081,9 +1106,9 @@ export function ResultsClient({
               🎉 Great job! You&apos;ve completed all steps for this application.
             </div>
           )}
-        </div>
+        </motion.div>
 
-      </div>
+      </motion.div>
 
       {/* Toast */}
       {toast && (

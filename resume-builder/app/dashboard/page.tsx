@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AppNavbar } from '@/components/AppNavbar';
 import { DashboardClient } from './DashboardClient';
+import { FadeUp } from '@/components/FadeUp';
 import type { Optimization, UserCredits } from '@/types';
 
 export default async function DashboardPage() {
@@ -43,6 +44,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Credits badge */}
+          <FadeUp delay={0.1}>
           <div className="relative bg-white border border-gray-200 rounded-xl px-4 py-3 text-right shadow-sm overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" />
             {credits?.is_pro ? (
@@ -68,6 +70,7 @@ export default async function DashboardPage() {
               </>
             )}
           </div>
+          </FadeUp>
         </div>
 
         {/* Table */}
