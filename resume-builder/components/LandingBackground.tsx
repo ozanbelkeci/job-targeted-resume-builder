@@ -14,7 +14,7 @@ export function LandingBackground() {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = requestAnimationFrame(() => {
         if (!blob) return;
-        blob.style.transform = `translate(${e.clientX - 300}px, ${e.clientY - 300}px)`;
+        blob.style.transform = `translate(${e.clientX - 350}px, ${e.clientY - 350}px)`;
         blob.style.opacity = '1';
       });
     }
@@ -36,43 +36,58 @@ export function LandingBackground() {
 
   return (
     <>
-      {/* Mouse-following gradient — fixed, covers entire viewport */}
+      {/* Mouse-following gradient — larger, more visible */}
       <div
         ref={blobRef}
         aria-hidden
-        className="pointer-events-none fixed top-0 left-0 w-[600px] h-[600px] rounded-full opacity-0 transition-opacity duration-700"
+        className="pointer-events-none fixed top-0 left-0 w-[700px] h-[700px] rounded-full opacity-0 transition-opacity duration-500"
         style={{
           background:
-            'radial-gradient(circle, rgba(30,58,95,0.07) 0%, rgba(56,121,217,0.03) 45%, transparent 70%)',
-          filter: 'blur(60px)',
+            'radial-gradient(circle, rgba(30,58,95,0.11) 0%, rgba(56,121,217,0.06) 40%, transparent 68%)',
+          filter: 'blur(50px)',
           willChange: 'transform',
           zIndex: 0,
         }}
       />
 
-      {/* Ambient floating blobs — slow drift, always visible */}
+      {/* Large aurora — top left, most prominent blob */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[12%] right-[8%] w-[360px] h-[360px] rounded-full landing-blob-1"
+        className="pointer-events-none absolute -top-[10%] -left-[5%] w-[550px] h-[550px] rounded-full landing-blob-1"
         style={{
-          background: 'rgba(30,58,95,0.055)',
+          background: 'rgba(30,58,95,0.10)',
+          filter: 'blur(90px)',
+        }}
+      />
+
+      {/* Mid-right blob */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-[8%] right-[4%] w-[420px] h-[420px] rounded-full landing-blob-2"
+        style={{
+          background: 'rgba(56,121,217,0.08)',
           filter: 'blur(80px)',
         }}
       />
+
+      {/* Bottom-left */}
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-[15%] left-[6%] w-[280px] h-[280px] rounded-full landing-blob-2"
+        className="pointer-events-none absolute bottom-[10%] left-[8%] w-[320px] h-[320px] rounded-full landing-blob-3"
         style={{
-          background: 'rgba(56,121,217,0.04)',
+          background: 'rgba(30,58,95,0.07)',
           filter: 'blur(70px)',
         }}
       />
+
+      {/* Center accent — sits directly behind the heading area */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[55%] right-[20%] w-[200px] h-[200px] rounded-full landing-blob-3"
+        className="pointer-events-none absolute top-[15%] left-[10%] w-[480px] h-[300px] rounded-full"
         style={{
-          background: 'rgba(30,58,95,0.035)',
-          filter: 'blur(60px)',
+          background:
+            'radial-gradient(ellipse at 40% 50%, rgba(30,58,95,0.09) 0%, rgba(56,121,217,0.04) 50%, transparent 75%)',
+          filter: 'blur(40px)',
         }}
       />
     </>

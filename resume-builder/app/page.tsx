@@ -47,15 +47,31 @@ export default async function LandingPage() {
               AI-Powered Resume Optimization
             </div>
 
-            <h1 className="animate-fade-up text-5xl lg:text-6xl xl:text-7xl font-bold text-[#1E3A5F] leading-[1.08] tracking-tight mb-6">
-              Get Your Resume
-              <br />
-              Past the{' '}
-              <span className="relative inline-block">
-                <span className="text-gradient-navy">ATS Filter</span>
-                <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-400 via-blue-500 to-[#1E3A5F] rounded-full opacity-70" />
-              </span>
-            </h1>
+            <div className="relative mb-6">
+              {/* Glow behind heading */}
+              <div
+                aria-hidden
+                className="absolute -inset-x-6 -inset-y-4 pointer-events-none rounded-2xl"
+                style={{
+                  background: 'radial-gradient(ellipse at 35% 50%, rgba(30,58,95,0.10) 0%, rgba(56,121,217,0.05) 50%, transparent 75%)',
+                  filter: 'blur(24px)',
+                }}
+              />
+              {/* Corner brackets — top left */}
+              <div aria-hidden className="absolute -top-2 -left-3 w-5 h-5 border-t-[2px] border-l-[2px] border-[#1E3A5F]/25 rounded-tl" />
+              {/* Corner brackets — bottom right */}
+              <div aria-hidden className="absolute -bottom-2 -right-1 w-5 h-5 border-b-[2px] border-r-[2px] border-[#1E3A5F]/25 rounded-br" />
+
+              <h1 className="animate-fade-up relative text-5xl lg:text-6xl xl:text-7xl font-bold text-[#1E3A5F] leading-[1.08] tracking-tight">
+                Get Your Resume
+                <br />
+                Past the{' '}
+                <span className="relative inline-block">
+                  <span className="text-gradient-navy">ATS Filter</span>
+                  <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-400 via-blue-500 to-[#1E3A5F] rounded-full opacity-70" />
+                </span>
+              </h1>
+            </div>
 
             <p className="animate-fade-up-d1 text-lg text-gray-500 leading-relaxed mb-10 max-w-lg">
               Upload your CV, paste a job listing, and our AI rewrites your resume
