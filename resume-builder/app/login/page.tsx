@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { APP_NAME, APP_URL } from '@/lib/constants';
+import { TextEffect } from '@/components/ui/text-effect';
 
 type View = 'signin' | 'signup' | 'forgot';
 
@@ -39,10 +40,24 @@ function Divider() {
 }
 
 function AtsRing() {
-  const score = 92;
+  const target = 92;
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
-  const filled = (score / 100) * circumference;
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const steps = 45;
+    const duration = 1400;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      setDisplay(Math.round((target * step) / steps));
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, []);
+
+  const filled = (display / 100) * circumference;
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -59,7 +74,7 @@ function AtsRing() {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-white leading-none">{score}</span>
+          <span className="text-3xl font-bold text-white leading-none">{display}</span>
           <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">/ 100</span>
         </div>
       </div>
@@ -101,12 +116,24 @@ function RightPanel() {
         </div>
 
         {/* Headline */}
-        <h2 className="text-white text-[1.6rem] font-semibold leading-snug mb-3 text-balance">
+        <TextEffect
+          as="h2"
+          per="word"
+          preset="slide"
+          delay={0.3}
+          className="text-white text-[1.6rem] font-semibold leading-snug mb-3 text-balance"
+        >
           Land your next job with AI-powered resume optimization
-        </h2>
-        <p className="text-white/50 text-sm mb-10 leading-relaxed">
+        </TextEffect>
+        <TextEffect
+          as="p"
+          per="word"
+          preset="blur"
+          delay={0.7}
+          className="text-white/50 text-sm mb-10 leading-relaxed"
+        >
           Tailor your CV to any job description in seconds. Beat the ATS filters. Get more interviews.
-        </p>
+        </TextEffect>
 
         {/* ATS Ring */}
         <div className="mb-10">

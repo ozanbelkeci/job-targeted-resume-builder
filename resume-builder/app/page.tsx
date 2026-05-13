@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { LandingNavbar } from '@/components/LandingNavbar';
 import { HeroCvStack } from '@/components/HeroCvStack';
 import { LandingBackground } from '@/components/LandingBackground';
+import { RotatingSubtitle } from '@/components/RotatingSubtitle';
 
 
 export default async function LandingPage() {
@@ -73,10 +74,9 @@ export default async function LandingPage() {
               </h1>
             </div>
 
-            <p className="animate-fade-up-d1 text-lg text-gray-500 leading-relaxed mb-10 max-w-lg">
-              Upload your CV, paste a job listing, and our AI rewrites your resume
-              to match — boosting your ATS score and your chances of getting an interview.
-            </p>
+            <div className="animate-fade-up-d1 mb-10">
+              <RotatingSubtitle />
+            </div>
 
             <div className="animate-fade-up-d2 flex flex-wrap gap-3 mb-8">
               <Link
