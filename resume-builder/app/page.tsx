@@ -4,6 +4,7 @@ import { APP_NAME, PRICING } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import { LandingNavbar } from '@/components/LandingNavbar';
 import { HeroCvStack } from '@/components/HeroCvStack';
+import { LandingBackground } from '@/components/LandingBackground';
 
 
 export default async function LandingPage() {
@@ -18,14 +19,16 @@ export default async function LandingPage() {
 
       {/* ── Hero ─────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-white px-6 py-24 lg:py-32">
-        {/* Layer 1: Radial gradient mesh — ambient light sources */}
+        {/* Layer 1: Interactive mouse-tracking + floating blobs */}
+        <LandingBackground />
+        {/* Layer 2: Static radial gradient mesh */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'radial-gradient(at 20% 40%, rgba(30,58,95,0.07) 0%, transparent 55%), radial-gradient(at 80% 10%, rgba(56,121,217,0.06) 0%, transparent 50%)',
           }}
         />
-        {/* Layer 2: Dot grid */}
+        {/* Layer 3: Dot grid */}
         <div className="absolute inset-0 bg-dot-grid pointer-events-none opacity-70" />
         {/* Layer 3: Bottom fade */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-white pointer-events-none" />
