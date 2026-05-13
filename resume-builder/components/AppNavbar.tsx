@@ -57,7 +57,7 @@ export function AppNavbar({ userEmail: initialEmail }: AppNavbarProps) {
       <div className="flex items-center justify-between px-5 py-2.5 bg-white/90 backdrop-blur-xl rounded-full shadow-[0_4px_24px_-4px_rgba(30,58,95,0.14),0_1px_4px_rgba(0,0,0,0.06)] border border-gray-200/70 w-full max-w-3xl relative">
 
         {/* Logo */}
-        <Link href="/app/upload" className="flex items-center gap-2 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <motion.div
             className="w-8 h-8 rounded-lg shadow-sm overflow-hidden"
             whileHover={{ rotate: 8, scale: 1.05 }}
