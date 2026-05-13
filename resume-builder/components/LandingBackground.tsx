@@ -40,11 +40,11 @@ export function LandingBackground() {
       <div
         ref={blobRef}
         aria-hidden
-        className="pointer-events-none fixed top-0 left-0 w-[600px] h-[600px] rounded-full opacity-0 transition-opacity duration-700"
+        className="pointer-events-none fixed top-0 left-0 w-[700px] h-[700px] rounded-full opacity-0 transition-opacity duration-500"
         style={{
           background:
-            'radial-gradient(circle, rgba(30,58,95,0.07) 0%, rgba(56,121,217,0.03) 40%, transparent 68%)',
-          filter: 'blur(60px)',
+            'radial-gradient(circle, rgba(30,58,95,0.11) 0%, rgba(56,121,217,0.06) 40%, transparent 68%)',
+          filter: 'blur(50px)',
           willChange: 'transform',
           zIndex: 0,
         }}
