@@ -43,8 +43,8 @@ export function LandingBackground() {
         className="pointer-events-none fixed top-0 left-0 w-[700px] h-[700px] rounded-full opacity-0 transition-opacity duration-500"
         style={{
           background:
-            'radial-gradient(circle, rgba(30,58,95,0.11) 0%, rgba(56,121,217,0.06) 40%, transparent 68%)',
-          filter: 'blur(50px)',
+            'radial-gradient(circle, rgba(30,58,95,0.06) 0%, rgba(56,121,217,0.03) 40%, transparent 68%)',
+          filter: 'blur(60px)',
           willChange: 'transform',
           zIndex: 0,
         }}

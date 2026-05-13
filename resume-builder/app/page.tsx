@@ -53,8 +53,8 @@ export default async function LandingPage() {
                 aria-hidden
                 className="absolute -inset-x-6 -inset-y-4 pointer-events-none rounded-2xl"
                 style={{
-                  background: 'radial-gradient(ellipse at 35% 50%, rgba(30,58,95,0.10) 0%, rgba(56,121,217,0.05) 50%, transparent 75%)',
-                  filter: 'blur(24px)',
+                  background: 'radial-gradient(ellipse at 35% 50%, rgba(30,58,95,0.05) 0%, rgba(56,121,217,0.025) 50%, transparent 75%)',
+                  filter: 'blur(28px)',
                 }}
               />
               {/* Corner brackets — top left */}
