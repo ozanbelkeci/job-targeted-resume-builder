@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateResumePdf } from '@/lib/pdf-generator';
+import { canDownloadPdf } from '@/lib/plan-guard';
 import type { Optimization, TemplateId, CvTheme } from '@/types';
 
 const VALID_TEMPLATES: TemplateId[] = ['classic', 'modern', 'minimal'];
@@ -16,6 +17,16 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: userCredits } = await supabase
+      .from('user_credits')
+      .select('is_pro')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!canDownloadPdf(userCredits?.is_pro ?? false)) {
+      return NextResponse.json({ error: 'upgrade_required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { DataTable } from '@/components/basic-data-table';
 import {
   Dialog,
@@ -46,12 +47,15 @@ function ScoreBadge({ score }: { score: number }) {
 
 interface Props {
   optimizations: OptRow[];
+  isPro: boolean;
+  credits: number;
 }
 
-export function DashboardClient({ optimizations: initial }: Props) {
+export function DashboardClient({ optimizations: initial, isPro, credits }: Props) {
   const [rows, setRows] = useState<OptRow[]>(initial);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -104,15 +108,24 @@ export function DashboardClient({ optimizations: initial }: Props) {
       sortable: false,
       render: (_: string, row: OptRow) => (
         <div className="flex items-center gap-2 justify-end">
-          <a
-            href={`/api/download-pdf?id=${row.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1E3A5F] border border-[#1E3A5F]/30 rounded-lg hover:bg-[#1E3A5F]/5 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            PDF
-          </a>
+          {isPro ? (
+            <a
+              href={`/api/download-pdf?id=${row.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1E3A5F] border border-[#1E3A5F]/30 rounded-lg hover:bg-[#1E3A5F]/5 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              PDF
+            </a>
+          ) : (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-600 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+            >
+              🔒 Upgrade
+            </button>
+          )}
           <Link
             href={`/app/results/${row.id}`}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-[#1E3A5F] transition-colors"
@@ -164,6 +177,27 @@ export function DashboardClient({ optimizations: initial }: Props) {
 
   return (
     <>
+      {/* Credit status banner for free users */}
+      {!isPro && (
+        <div className={`mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl text-sm border ${
+          credits <= 0
+            ? 'bg-amber-50 border-amber-200 text-amber-700'
+            : 'bg-blue-50 border-blue-100 text-blue-700'
+        }`}>
+          <span>
+            {credits <= 0
+              ? 'No optimizations remaining — Upgrade to continue'
+              : `${credits} free optimization${credits !== 1 ? 's' : ''} remaining`}
+          </span>
+          <button
+            onClick={() => setShowUpgradeModal(true)}
+            className="text-xs font-semibold underline underline-offset-2 hover:no-underline ml-4"
+          >
+            Upgrade →
+          </button>
+        </div>
+      )}
+
       <motion.div
         className="relative overflow-hidden rounded-2xl shadow-sm"
         initial={{ opacity: 0, y: 14 }}
@@ -203,6 +237,14 @@ export function DashboardClient({ optimizations: initial }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSelectStarter={() => setShowUpgradeModal(false)}
+        onSelectPro={() => setShowUpgradeModal(false)}
+        onSelectLifetime={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 }

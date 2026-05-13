@@ -43,12 +43,14 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .single();
 
   const isPro = userCredits?.is_pro ?? false;
+  const isFree = !isPro;
   const originalResumeText = (resume?.original_text as string | null) ?? '';
 
   return (
     <ResultsClient
       initialOptimization={optimization}
       isPro={isPro}
+      isFree={isFree}
       originalResumeText={originalResumeText}
     />
   );

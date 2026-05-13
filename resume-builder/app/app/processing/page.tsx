@@ -178,6 +178,9 @@ export default function ProcessingPage() {
         <p className="mt-8 text-xs text-gray-400">
           Please don&apos;t close this tab — your optimization is in progress.
         </p>
+        <p className="mt-2 text-xs text-gray-400">
+          Your ATS score and keyword analysis will be ready shortly.
+        </p>
       </motion.div>
     </div>
   );

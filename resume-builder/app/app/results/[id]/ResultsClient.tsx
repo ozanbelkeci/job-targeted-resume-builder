@@ -6,6 +6,8 @@ import { motion, type Variants } from 'framer-motion';
 import debounce from 'lodash.debounce';
 import { AtsScoreRing } from '@/components/AtsScoreRing';
 import { EditableCvPreview } from '@/components/EditableCvPreview';
+import { LockedCvPreview } from '@/components/LockedCvPreview';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { calculateLiveScore } from '@/lib/ats-calculator';
 import type { Optimization, ChecklistState, OptimizedCv, CvSkills, LiveScoreResult, CvTheme, TemplateId } from '@/types';
 import { DEFAULT_THEME, COLOR_PALETTES } from '@/lib/cv-templates';
@@ -285,10 +287,12 @@ const DEFAULT_CHECKLIST: ChecklistState = {
 export function ResultsClient({
   initialOptimization,
   isPro,
+  isFree,
   originalResumeText,
 }: {
   initialOptimization: Optimization;
   isPro: boolean;
+  isFree: boolean;
   originalResumeText: string;
 }) {
   const router = useRouter();
@@ -306,6 +310,7 @@ export function ResultsClient({
     initialOptimization.ats_keywords?.missing ?? [],
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [editingExperienceIdx, setEditingExperienceIdx] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -670,15 +675,27 @@ export function ResultsClient({
                 </p>
               )}
             </div>
-            <a
-              href={`/api/download-pdf?id=${optimization.id}&template=${cvTheme.templateId}&color=${encodeURIComponent(cvTheme.accentColor)}`}
-              className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download PDF
-            </a>
+            {isFree ? (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="flex items-center gap-2 border border-[#1E3A5F]/40 text-[#1E3A5F] rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-blue-50/40 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Unlock to Download
+              </button>
+            ) : (
+              <a
+                href={`/api/download-pdf?id=${optimization.id}&template=${cvTheme.templateId}&color=${encodeURIComponent(cvTheme.accentColor)}`}
+                className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download PDF
+              </a>
+            )}
             <button
               onClick={handleSave}
               disabled={!hasUnsavedChanges || isSaving}
@@ -944,7 +961,7 @@ export function ResultsClient({
                   </div>
                 )}
 
-                <button
+                {!isFree && <button
                   onClick={handleRegenerate}
                   disabled={isRegenerating || !hasRegenerateInput}
                   className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-[#1E3A5F] hover:bg-[#162d4a] text-white"
@@ -970,7 +987,7 @@ export function ResultsClient({
                       )}
                     </>
                   )}
-                </button>
+                </button>}
               </div>
             </div>
           </motion.div>
@@ -1004,7 +1021,7 @@ export function ResultsClient({
               </div>
             </div>
             <div className={`p-4 transition-opacity duration-200 ${isViewTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-              {displayView === 'optimized' && (
+              {displayView === 'optimized' && !isFree && (
                 <TemplateSelector
                   selectedTemplate={cvTheme.templateId}
                   selectedColor={cvTheme.accentColor}
@@ -1013,6 +1030,9 @@ export function ResultsClient({
                 />
               )}
               {displayView === 'optimized' ? (
+                isFree ? (
+                  <LockedCvPreview cv={editedCv} onUnlock={() => setShowUpgradeModal(true)} />
+                ) : (
                 <EditableCvPreview
                   cv={editedCv}
                   onChange={handleCvChange}
@@ -1020,6 +1040,7 @@ export function ResultsClient({
                   onSetEditingExperience={setEditingExperienceIdx}
                   theme={cvTheme}
                 />
+                )
               ) : (
                 <>
                   {pdfState === 'loading' && (
@@ -1109,6 +1130,14 @@ export function ResultsClient({
         </motion.div>
 
       </motion.div>
+
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSelectStarter={() => setShowUpgradeModal(false)}
+        onSelectPro={() => setShowUpgradeModal(false)}
+        onSelectLifetime={() => setShowUpgradeModal(false)}
+      />
 
       {/* Toast */}
       {toast && (

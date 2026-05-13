@@ -74,7 +74,11 @@ export default async function DashboardPage() {
         </div>
 
         {/* Table */}
-        <DashboardClient optimizations={optimizations ?? []} />
+        <DashboardClient
+          optimizations={optimizations ?? []}
+          isPro={credits?.is_pro ?? false}
+          credits={credits?.credits ?? 0}
+        />
       </div>
     </div>
   );

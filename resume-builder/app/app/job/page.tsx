@@ -244,6 +244,7 @@ export default function JobPage() {
         onClose={() => setShowUpgradeModal(false)}
         onSelectStarter={() => setShowUpgradeModal(false)}
         onSelectPro={() => setShowUpgradeModal(false)}
+        onSelectLifetime={() => setShowUpgradeModal(false)}
       />
     </div>
   );
