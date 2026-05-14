@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type');
-  const next = searchParams.get('next') ?? '/app/upload';
+  const next = searchParams.get('next') ?? '/';
 
   const supabase = createClient();
 
