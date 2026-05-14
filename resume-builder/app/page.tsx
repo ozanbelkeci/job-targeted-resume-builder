@@ -12,9 +12,8 @@ import { AnimatedStats } from '@/components/AnimatedStats';
 export default async function LandingPage() {
   const supabase = createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
