@@ -448,6 +448,8 @@ export default async function LandingPage() {
               <a href="#features" className="hover:text-gray-600 transition-colors">Features</a>
               <a href="#pricing" className="hover:text-gray-600 transition-colors">Pricing</a>
               <Link href="/login" className="hover:text-gray-600 transition-colors">Sign In</Link>
+              <Link href="/terms" className="hover:text-gray-600 transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-gray-600 transition-colors">Privacy</Link>
             </div>
           </div>
 
