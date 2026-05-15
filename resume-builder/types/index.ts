@@ -114,6 +114,7 @@ export interface UserCredits {
   user_id: string;
   credits: number;
   is_pro: boolean;
+  plan: 'free' | 'starter' | 'pro';
   pro_expires_at: string | null;
   updated_at: string;
 }

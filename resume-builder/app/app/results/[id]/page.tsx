@@ -26,7 +26,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       .single<Optimization>(),
     supabase
       .from('user_credits')
-      .select('is_pro')
+      .select('is_pro, plan')
       .eq('user_id', user.id)
       .single(),
   ]);

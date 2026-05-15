@@ -16,7 +16,7 @@ export async function GET() {
 
     const { data: credits, error } = await supabase
       .from('user_credits')
-      .select('credits, is_pro, pro_expires_at')
+      .select('credits, is_pro, plan, pro_expires_at')
       .eq('user_id', user.id)
       .single();
 
@@ -26,7 +26,7 @@ export async function GET() {
         const { data: newCredits, error: insertError } = await supabase
           .from('user_credits')
           .insert({ user_id: user.id, credits: 1, is_pro: false })
-          .select('credits, is_pro, pro_expires_at')
+          .select('credits, is_pro, plan, pro_expires_at')
           .single();
 
         if (insertError) {
