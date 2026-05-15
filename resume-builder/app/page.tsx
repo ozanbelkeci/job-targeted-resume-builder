@@ -291,7 +291,7 @@ export default async function LandingPage() {
               <div className="text-4xl font-bold text-gray-900 mb-1">$0</div>
               <div className="text-sm text-gray-400 mb-7">forever</div>
               <ul className="space-y-3 text-sm text-gray-600 mb-8">
-                {['1 optimization credit', 'ATS score analysis', 'Keyword analysis', 'PDF download'].map((item) => (
+                {['1 optimization credit', 'ATS score analysis', 'Keyword analysis', 'Copy as text'].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
                     <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -315,7 +315,7 @@ export default async function LandingPage() {
               <div className="text-4xl font-bold text-gray-900 mb-1">{PRICING.STARTER_PRICE}</div>
               <div className="text-sm text-gray-400 mb-7">one-time</div>
               <ul className="space-y-3 text-sm text-gray-600 mb-8">
-                {['5 optimization credits', 'ATS score analysis', 'Keyword analysis', 'PDF download'].map((item) => (
+                {['5 optimization credits', 'ATS score analysis', 'Keyword analysis', 'Copy as text'].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
                     <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -350,7 +350,7 @@ export default async function LandingPage() {
               <div className="text-sm text-blue-200/80 mb-7">per month · cancel anytime</div>
 
               <ul className="space-y-3 text-sm text-blue-100/90 mb-8">
-                {['Unlimited optimizations', 'Cover Letter Generator', 'LinkedIn Optimizer', 'Full history access'].map((item) => (
+                {['Unlimited optimizations', 'PDF download', 'Cover Letter Generator', 'LinkedIn Optimizer', 'Full history access'].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
                     <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
