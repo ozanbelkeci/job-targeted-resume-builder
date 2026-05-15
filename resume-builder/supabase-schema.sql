@@ -44,6 +44,7 @@ create table if not exists user_credits (
   user_id uuid references auth.users(id) on delete cascade unique,
   credits integer default 1,
   is_pro boolean default false,
+  plan text not null default 'free',
   pro_expires_at timestamp with time zone,
   updated_at timestamp with time zone default now()
 );
@@ -61,8 +62,8 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
-  insert into public.user_credits (user_id, credits, is_pro)
-  values (new.id, 1, false);
+  insert into public.user_credits (user_id, credits, is_pro, plan)
+  values (new.id, 1, false, 'free');
   return new;
 end;
 $$;
