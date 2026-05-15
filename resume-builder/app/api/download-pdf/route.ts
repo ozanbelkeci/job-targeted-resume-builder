@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
 
     const { data: userCredits } = await supabase
       .from('user_credits')
-      .select('is_pro')
+      .select('is_pro, credits')
       .eq('user_id', user.id)
       .single();
 
-    if (!canDownloadPdf(userCredits?.is_pro ?? false)) {
+    if (!canDownloadPdf(userCredits?.is_pro ?? false, userCredits?.credits ?? 0)) {
       return NextResponse.json({ error: 'upgrade_required' }, { status: 403 });
     }
 

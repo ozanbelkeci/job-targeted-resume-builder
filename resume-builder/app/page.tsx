@@ -315,7 +315,7 @@ export default async function LandingPage() {
               <div className="text-4xl font-bold text-gray-900 mb-1">{PRICING.STARTER_PRICE}</div>
               <div className="text-sm text-gray-400 mb-7">one-time</div>
               <ul className="space-y-3 text-sm text-gray-600 mb-8">
-                {['5 optimization credits', 'ATS score analysis', 'Keyword analysis', 'Copy as text'].map((item) => (
+                {['5 optimization credits', 'ATS score analysis', 'Keyword analysis', 'PDF download'].map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
                     <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
