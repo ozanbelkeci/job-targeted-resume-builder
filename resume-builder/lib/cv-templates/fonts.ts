@@ -1,3 +1,4 @@
+import path from 'path';
 import { Font } from '@react-pdf/renderer';
 
 export function registerFonts() {
@@ -19,27 +20,30 @@ export function registerFonts() {
     ],
   });
 
-  // Full TTF files from Google Fonts GitHub — includes all Unicode ranges (Latin Extended-A, Turkish, etc.)
+  // Merged Lora fonts (latin + latin-ext) — full Turkish/Latin Extended-A support
+  // Self-hosted in public/fonts/ for reliability; merged via opentype.js to include
+  // both basic Latin (A-Z, 0-9) and Turkish chars (İ, Ş, ş, Ğ, ğ, etc.)
+  const fontsDir = path.join(process.cwd(), 'public', 'fonts');
   Font.register({
     family: 'Lora',
     fonts: [
       {
-        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Regular.ttf',
+        src: path.join(fontsDir, 'Lora-Regular-full.woff'),
         fontWeight: 400,
         fontStyle: 'normal',
       },
       {
-        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Italic.ttf',
+        src: path.join(fontsDir, 'Lora-Italic-full.woff'),
         fontWeight: 400,
         fontStyle: 'italic',
       },
       {
-        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Bold.ttf',
+        src: path.join(fontsDir, 'Lora-Bold-full.woff'),
         fontWeight: 700,
         fontStyle: 'normal',
       },
       {
-        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-BoldItalic.ttf',
+        src: path.join(fontsDir, 'Lora-BoldItalic-full.woff'),
         fontWeight: 700,
         fontStyle: 'italic',
       },
