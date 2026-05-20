@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, type Variants } from 'framer-motion';
 import debounce from 'lodash.debounce';
-import { AtsScoreRing } from '@/components/AtsScoreRing';
+import { AtsScoreGauge } from '@/components/AtsScoreGauge';
 import { EditableCvPreview } from '@/components/EditableCvPreview';
 import { LockedCvPreview } from '@/components/LockedCvPreview';
 import { UpgradeModal } from '@/components/UpgradeModal';
@@ -800,8 +800,8 @@ export function ResultsClient({
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">ATS Match Score</h2>
             </div>
             <div className="p-5">
-              <div className="flex justify-center mb-4">
-                <AtsScoreRing score={liveScore} />
+              <div className="flex justify-center mb-2">
+                <AtsScoreGauge score={liveScore} />
               </div>
 
               {/* Feature 5: Score Breakdown */}
