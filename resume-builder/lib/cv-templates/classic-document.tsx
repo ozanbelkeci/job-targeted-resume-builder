@@ -216,27 +216,24 @@ export function ClassicDocument({ cv, accentColor }: { cv: OptimizedCv; accentCo
           </View>
         ) : null}
 
-        {/* Experience */}
-        {cv.experience.length > 0 ? (
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Experience</Text>
-            {cv.experience.map((exp, i) => (
-              <View key={i} style={s.expBlock}>
-                <View style={s.expRow}>
-                  <Text style={s.expTitle}>{exp.title}</Text>
-                  <Text style={s.expDuration}>{exp.duration}</Text>
-                </View>
-                <Text style={s.expCompany}>{exp.company}</Text>
-                {exp.bullets.map((bullet, j) => (
-                  <View key={j} style={s.bullet}>
-                    <Text style={s.bulletDot}>•</Text>
-                    <Text style={s.bulletText}>{bullet}</Text>
-                  </View>
-                ))}
+        {/* Experience — each entry rendered as a flat Page-level sibling so @react-pdf
+            can paginate them independently instead of treating the whole section as one block */}
+        {cv.experience.map((exp, i) => (
+          <View key={i} style={i === cv.experience.length - 1 ? [s.expBlock, { marginBottom: 16 }] : s.expBlock}>
+            {i === 0 ? <Text style={s.sectionTitle}>Experience</Text> : null}
+            <View style={s.expRow}>
+              <Text style={s.expTitle}>{exp.title}</Text>
+              <Text style={s.expDuration}>{exp.duration}</Text>
+            </View>
+            <Text style={s.expCompany}>{exp.company}</Text>
+            {(exp.bullets ?? []).map((bullet, j) => (
+              <View key={j} style={s.bullet}>
+                <Text style={s.bulletDot}>•</Text>
+                <Text style={s.bulletText}>{bullet}</Text>
               </View>
             ))}
           </View>
-        ) : null}
+        ))}
 
         {/* Education */}
         {cv.education.length > 0 ? (
