@@ -3,47 +3,57 @@
 import { useState, useEffect, useRef } from 'react';
 import { ATS_SCORE_THRESHOLDS } from '@/lib/constants';
 
-const CX = 130;
-const CY = 118;
-const R  = 100;
-const SW = 16;
+/*
+  SVG half-circle gauge — flat edge at bottom, arc goes UPWARD.
 
-// Background: left → right going UP (counterclockwise, sweep=0)
-const BG_PATH = `M ${CX - R},${CY} A ${R},${R} 0 0,0 ${CX + R},${CY}`;
+  Key insight: sweep=1 (clockwise on screen) traces the UPPER semicircle
+  from left → top → right.  sweep=0 would trace the lower (wrong) half.
 
-// Filled arc from left point, sweeping counterclockwise (upward).
-// large-arc is always 0 — the filled portion is always ≤ 180°.
-function arcPath(progress: number): string {
-  if (progress <= 0) return '';
-  const p = Math.min(progress, 0.9999);
-  const endX = CX - R * Math.cos(p * Math.PI);
-  const endY = CY - R * Math.sin(p * Math.PI);
-  return `M ${CX - R},${CY} A ${R},${R} 0 0,0 ${endX.toFixed(3)},${endY.toFixed(3)}`;
+  End-point formula for progress p ∈ [0,1]:
+    angle = 180° − p·180°  (standard math, y-up)
+    x = CX − R·cos(p·π)
+    y = CY − R·sin(p·π)
+
+  large-arc is always 0 because the filled portion is always ≤ 180°.
+*/
+
+const CX = 130;   // horizontal center
+const CY = 125;   // vertical position of flat edge (bottom of semicircle)
+const R  = 102;   // radius
+const SW = 16;    // stroke width
+
+const START_X = CX - R;  // 28
+const END_X   = CX + R;  // 232
+
+const BG_PATH = `M ${START_X},${CY} A ${R},${R} 0 0,1 ${END_X},${CY}`;
+
+function filledPath(p: number): string {
+  if (p <= 0) return '';
+  const safe = Math.min(p, 0.9999);
+  const ex = CX - R * Math.cos(safe * Math.PI);
+  const ey = CY - R * Math.sin(safe * Math.PI);
+  return `M ${START_X},${CY} A ${R},${R} 0 0,1 ${ex.toFixed(3)},${ey.toFixed(3)}`;
 }
 
-function getColor(score: number): string {
-  if (score >= ATS_SCORE_THRESHOLDS.MEDIUM) return '#22c55e';
-  if (score >= ATS_SCORE_THRESHOLDS.LOW)    return '#f59e0b';
+function getColor(s: number) {
+  if (s >= ATS_SCORE_THRESHOLDS.MEDIUM) return '#22c55e';
+  if (s >= ATS_SCORE_THRESHOLDS.LOW)    return '#f59e0b';
   return '#ef4444';
 }
 
-function getLabel(score: number): string {
-  if (score >= ATS_SCORE_THRESHOLDS.MEDIUM) return 'Excellent Match';
-  if (score >= ATS_SCORE_THRESHOLDS.LOW)    return 'Good Match';
+function getLabel(s: number) {
+  if (s >= ATS_SCORE_THRESHOLDS.MEDIUM) return 'Excellent Match';
+  if (s >= ATS_SCORE_THRESHOLDS.LOW)    return 'Good Match';
   return 'Needs Improvement';
 }
 
-interface AtsScoreGaugeProps {
-  score: number;
-}
-
-export function AtsScoreGauge({ score }: AtsScoreGaugeProps) {
+export function AtsScoreGauge({ score }: { score: number }) {
   const [display, setDisplay] = useState(0);
-  const animated = useRef(false);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    const from = animated.current ? display : 0;
-    animated.current = true;
+    const from = hasRun.current ? display : 0;
+    hasRun.current = true;
     const duration = 1200;
     const start = performance.now();
     const tick = (now: number) => {
@@ -56,21 +66,22 @@ export function AtsScoreGauge({ score }: AtsScoreGaugeProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score]);
 
-  const color  = getColor(score);
-  const label  = getLabel(score);
-  const filled = arcPath(display / 100);
+  const color = getColor(score);
+  const label = getLabel(score);
+  const VW = CX * 2;          // 260
+  const VH = CY + 20;         // 145
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       <svg
-        viewBox={`0 0 ${CX * 2} ${CY + 22}`}
-        width={CX * 2}
-        height={CY + 22}
-        className="overflow-visible"
-        aria-label={`ATS Score: ${display} out of 100`}
+        viewBox={`0 0 ${VW} ${VH}`}
+        width={VW}
+        height={VH}
+        overflow="visible"
         role="img"
+        aria-label={`ATS Score ${display} / 100`}
       >
-        {/* Track */}
+        {/* Background track */}
         <path
           d={BG_PATH}
           fill="none"
@@ -79,27 +90,27 @@ export function AtsScoreGauge({ score }: AtsScoreGaugeProps) {
           strokeLinecap="round"
         />
 
-        {/* Progress arc */}
+        {/* Filled arc */}
         {display > 0 && (
           <path
-            d={filled}
+            d={filledPath(display / 100)}
             fill="none"
             stroke={color}
             strokeWidth={SW}
             strokeLinecap="round"
-            style={{ filter: `drop-shadow(0 0 8px ${color}66)` }}
+            style={{ filter: `drop-shadow(0 0 7px ${color}55)` }}
           />
         )}
 
         {/* Score number */}
         <text
           x={CX}
-          y={CY - 14}
+          y={CY - 18}
           textAnchor="middle"
           dominantBaseline="auto"
           style={{
             fontFamily: 'inherit',
-            fontSize: 52,
+            fontSize: 54,
             fontWeight: 800,
             fill: color,
             letterSpacing: '-2px',
@@ -111,7 +122,7 @@ export function AtsScoreGauge({ score }: AtsScoreGaugeProps) {
         {/* / 100 */}
         <text
           x={CX}
-          y={CY + 8}
+          y={CY + 10}
           textAnchor="middle"
           dominantBaseline="auto"
           style={{ fontFamily: 'inherit', fontSize: 13, fill: '#9ca3af' }}
@@ -120,7 +131,6 @@ export function AtsScoreGauge({ score }: AtsScoreGaugeProps) {
         </text>
       </svg>
 
-      {/* Label badge */}
       <span
         className="text-sm font-semibold px-3.5 py-1.5 rounded-full transition-colors duration-500"
         style={{ color, backgroundColor: `${color}18` }}
