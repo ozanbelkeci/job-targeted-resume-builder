@@ -6,7 +6,7 @@ import { generateResumePdf } from '@/lib/pdf-generator';
 import { canDownloadPdf } from '@/lib/plan-guard';
 import type { Optimization, TemplateId, CvTheme } from '@/types';
 
-const VALID_TEMPLATES: TemplateId[] = ['classic', 'modern', 'minimal'];
+const VALID_TEMPLATES: TemplateId[] = ['classic', 'modern', 'minimal', 'professional'];
 
 export async function GET(request: NextRequest) {
   try {

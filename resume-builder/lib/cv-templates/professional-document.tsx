@@ -3,11 +3,11 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import type { OptimizedCv, CvSkills } from '@/types';
 
 /*
-  Professional template — Times-Roman serif, ATS-optimised.
+  Professional template — Lora serif, ATS-optimised.
   Rules:
   - NO React.Fragment / <> inside PDF render tree  →  silently drops content
   - NO unsupported CSS props (gap, gap-x, …)
-  - Bold via fontFamily: 'Times-Bold', italic via 'Times-Italic' (standard PDF fonts)
+  - Lora font: fontWeight 700 for bold, fontStyle 'italic' for italic
 */
 
 const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
@@ -21,7 +21,8 @@ const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
 function buildStyles(accentColor: string) {
   return StyleSheet.create({
     page: {
-      fontFamily: 'Times-Roman',
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 10,
       color: '#111111',
       paddingTop: 48,
@@ -32,21 +33,26 @@ function buildStyles(accentColor: string) {
 
     // ── Header ────────────────────────────────────────────────
     headerName: {
-      fontFamily: 'Times-Bold',
+      fontFamily: 'Lora',
+      fontWeight: 700,
       fontSize: 20,
       color: '#111111',
       textAlign: 'center',
       letterSpacing: 1.5,
-      marginBottom: 2,
+      marginBottom: 3,
     },
     headerJobTitle: {
-      fontFamily: 'Times-Italic',
+      fontFamily: 'Lora',
+      fontWeight: 400,
+      fontStyle: 'italic',
       fontSize: 11,
       color: '#444444',
       textAlign: 'center',
       marginBottom: 5,
     },
     headerContact: {
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9,
       color: '#333333',
       textAlign: 'center',
@@ -66,8 +72,9 @@ function buildStyles(accentColor: string) {
       marginBottom: 5,
     },
     sectionTitleText: {
-      fontFamily: 'Times-Bold',
-      fontSize: 10.5,
+      fontFamily: 'Lora',
+      fontWeight: 700,
+      fontSize: 10,
       color: '#111111',
       textTransform: 'uppercase',
       letterSpacing: 1,
@@ -80,6 +87,8 @@ function buildStyles(accentColor: string) {
 
     // ── Summary ───────────────────────────────────────────────
     summaryText: {
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9.5,
       color: '#222222',
       lineHeight: 1.55,
@@ -92,27 +101,27 @@ function buildStyles(accentColor: string) {
     expRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-end',
+      marginBottom: 1,
     },
     expCompany: {
-      fontFamily: 'Times-Bold',
+      fontFamily: 'Lora',
+      fontWeight: 700,
       fontSize: 10.5,
       color: '#111111',
     },
     expDuration: {
-      fontFamily: 'Times-Roman',
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9,
       color: '#444444',
     },
-    expTitleRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 3,
-    },
     expTitle: {
-      fontFamily: 'Times-Italic',
+      fontFamily: 'Lora',
+      fontWeight: 400,
+      fontStyle: 'italic',
       fontSize: 10,
       color: '#333333',
+      marginBottom: 3,
     },
     bullet: {
       flexDirection: 'row',
@@ -121,12 +130,16 @@ function buildStyles(accentColor: string) {
     },
     bulletDot: {
       width: 10,
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9,
       color: '#333333',
       marginTop: 1,
     },
     bulletText: {
       flex: 1,
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9.5,
       color: '#222222',
       lineHeight: 1.5,
@@ -139,20 +152,24 @@ function buildStyles(accentColor: string) {
     eduRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-end',
+      marginBottom: 1,
     },
     eduSchool: {
-      fontFamily: 'Times-Bold',
+      fontFamily: 'Lora',
+      fontWeight: 700,
       fontSize: 10.5,
       color: '#111111',
     },
     eduYear: {
-      fontFamily: 'Times-Roman',
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9,
       color: '#444444',
     },
     eduDegree: {
-      fontFamily: 'Times-Italic',
+      fontFamily: 'Lora',
+      fontWeight: 400,
+      fontStyle: 'italic',
       fontSize: 10,
       color: '#333333',
       marginTop: 1,
@@ -161,22 +178,24 @@ function buildStyles(accentColor: string) {
     // ── Skills ────────────────────────────────────────────────
     skillRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
       marginBottom: 3,
     },
     skillLabel: {
-      fontFamily: 'Times-Bold',
+      fontFamily: 'Lora',
+      fontWeight: 700,
       fontSize: 9.5,
       color: '#111111',
     },
     skillValues: {
-      fontFamily: 'Times-Roman',
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9.5,
       color: '#333333',
       flex: 1,
     },
     skillsFlat: {
-      fontFamily: 'Times-Roman',
+      fontFamily: 'Lora',
+      fontWeight: 400,
       fontSize: 9.5,
       color: '#333333',
       lineHeight: 1.5,
@@ -240,10 +259,8 @@ export function ProfessionalDocument({
                   <Text style={s.expCompany}>{exp.company}</Text>
                   <Text style={s.expDuration}>{exp.duration}</Text>
                 </View>
-                <View style={s.expTitleRow}>
-                  <Text style={s.expTitle}>{exp.title}</Text>
-                </View>
-                {exp.bullets.map((b, j) => (
+                <Text style={s.expTitle}>{exp.title}</Text>
+                {(exp.bullets ?? []).map((b, j) => (
                   <View key={j} style={s.bullet}>
                     <Text style={s.bulletDot}>•</Text>
                     <Text style={s.bulletText}>{b}</Text>
