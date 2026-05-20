@@ -129,6 +129,19 @@ function SectionTitle({ children, theme }: { children: React.ReactNode; theme: C
       </h2>
     );
   }
+  if (theme.templateId === 'professional') {
+    return (
+      <h2
+        className="text-[11px] font-bold uppercase tracking-wider text-gray-900 pb-1.5 mb-2.5 border-b"
+        style={{
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          borderColor: theme.accentColor,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
   // classic (default)
   return (
     <h2
@@ -230,19 +243,23 @@ export function EditableCvPreview({
 
   // ─── template-driven container classes ──────────────────
 
-  const isModern  = theme.templateId === 'modern';
-  const isMinimal = theme.templateId === 'minimal';
-  const isClassic = theme.templateId === 'classic';
+  const isModern       = theme.templateId === 'modern';
+  const isMinimal      = theme.templateId === 'minimal';
+  const isClassic      = theme.templateId === 'classic';
+  const isProfessional = theme.templateId === 'professional';
 
   const containerClass = [
-    'bg-white rounded-xl border border-gray-100 text-sm font-sans max-h-[72vh] overflow-y-auto',
-    isModern  ? 'pl-7 pr-6 py-6 border-l-4 space-y-5' : '',
-    isMinimal ? 'p-8 space-y-7'                        : '',
-    isClassic ? 'p-6 space-y-5'                        : '',
+    'bg-white rounded-xl border border-gray-100 text-sm max-h-[72vh] overflow-y-auto',
+    isModern       ? 'pl-7 pr-6 py-6 border-l-4 space-y-5 font-sans' : '',
+    isMinimal      ? 'p-8 space-y-7 font-sans'                        : '',
+    isClassic      ? 'p-6 space-y-5 font-sans'                        : '',
+    isProfessional ? 'p-6 space-y-4'                                  : '',
   ].join(' ');
 
   const containerStyle: React.CSSProperties = isModern
     ? { borderLeftColor: theme.accentColor }
+    : isProfessional
+    ? { fontFamily: 'Georgia, "Times New Roman", serif' }
     : {};
 
   // ─── render ──────────────────────────────────────────────
@@ -252,16 +269,27 @@ export function EditableCvPreview({
 
       {/* ── Header ── */}
       <div
-        className={`border-b-2 pb-4 ${isClassic ? 'text-center' : ''}`}
+        className={`pb-4 ${isClassic || isProfessional ? 'text-center' : ''} ${!isProfessional ? 'border-b-2' : ''}`}
         style={{ borderColor: isClassic ? theme.accentColor : '#e5e7eb' }}
       >
         {/* Name */}
         <h1
-          className={`font-bold leading-tight ${isMinimal ? 'text-2xl tracking-wide' : 'text-xl'}`}
-          style={{ color: theme.accentColor }}
+          className={`font-bold leading-tight ${
+            isMinimal ? 'text-2xl tracking-wide' :
+            isProfessional ? 'text-2xl uppercase tracking-[0.15em]' :
+            'text-xl'
+          }`}
+          style={{
+            color: isProfessional ? '#111111' : theme.accentColor,
+            ...(isProfessional ? { fontFamily: 'Georgia, "Times New Roman", serif' } : {}),
+          }}
         >
           {cv.name}
         </h1>
+        {/* Professional: colored underline below name */}
+        {isProfessional && (
+          <div className="border-b-2 mt-2 mb-1" style={{ borderColor: theme.accentColor }} />
+        )}
 
         {/* Job title — editable */}
         <div className="mt-0.5">

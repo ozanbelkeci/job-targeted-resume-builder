@@ -145,7 +145,7 @@ export interface ApiErrorResponse {
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-export type TemplateId = 'classic' | 'modern' | 'minimal';
+export type TemplateId = 'classic' | 'modern' | 'minimal' | 'professional';
 
 export interface CvTheme {
   templateId: TemplateId;

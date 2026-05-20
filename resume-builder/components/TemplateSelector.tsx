@@ -57,10 +57,37 @@ function MinimalThumbnail({ color }: { color: string }) {
   );
 }
 
+function ProfessionalThumbnail({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 80 60" fill="none" className="w-full h-full">
+      {/* Name — centered, large, spaced */}
+      <rect x="16" y="5"  width="48" height="4.5" rx="0.5" fill="#111111" opacity="0.85" />
+      {/* Accent divider below name */}
+      <rect x="6"  y="13" width="68" height="1"   rx="0"   fill={color}   opacity="0.8" />
+      {/* Contact row */}
+      <rect x="14" y="16" width="12" height="1.5" rx="0.5" fill="#555555" opacity="0.5" />
+      <rect x="30" y="16" width="12" height="1.5" rx="0.5" fill="#555555" opacity="0.5" />
+      <rect x="46" y="16" width="18" height="1.5" rx="0.5" fill="#555555" opacity="0.5" />
+      {/* Section header — left, uppercase, accent underline */}
+      <rect x="6"  y="23" width="18" height="2"   rx="0.5" fill="#111111" opacity="0.8" />
+      <rect x="6"  y="26" width="68" height="0.8" rx="0"   fill={color}   opacity="0.7" />
+      {/* Body lines */}
+      <rect x="6"  y="30" width="68" height="1.5" rx="0.5" fill="#cccccc" />
+      <rect x="6"  y="34" width="55" height="1.5" rx="0.5" fill="#cccccc" />
+      {/* Section header 2 */}
+      <rect x="6"  y="41" width="18" height="2"   rx="0.5" fill="#111111" opacity="0.8" />
+      <rect x="6"  y="44" width="68" height="0.8" rx="0"   fill={color}   opacity="0.7" />
+      <rect x="6"  y="48" width="68" height="1.5" rx="0.5" fill="#cccccc" />
+      <rect x="6"  y="52" width="40" height="1.5" rx="0.5" fill="#cccccc" />
+    </svg>
+  );
+}
+
 const THUMBNAILS: Record<TemplateId, React.ComponentType<{ color: string }>> = {
-  classic: ClassicThumbnail,
-  modern:  ModernThumbnail,
-  minimal: MinimalThumbnail,
+  classic:      ClassicThumbnail,
+  modern:       ModernThumbnail,
+  minimal:      MinimalThumbnail,
+  professional: ProfessionalThumbnail,
 };
 
 export function TemplateSelector({
@@ -74,7 +101,7 @@ export function TemplateSelector({
   return (
     <div className="mb-4 pb-4 border-b border-gray-100">
       {/* Template cards */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-4 gap-2 mb-3">
         {TEMPLATES.map((tpl) => {
           const isSelected = tpl.id === selectedTemplate;
           const TplThumb = THUMBNAILS[tpl.id];
