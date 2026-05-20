@@ -132,9 +132,9 @@ function SectionTitle({ children, theme }: { children: React.ReactNode; theme: C
   if (theme.templateId === 'professional') {
     return (
       <h2
-        className="text-[11px] font-bold uppercase tracking-wider text-gray-900 pb-1.5 mb-2.5 border-b"
+        className="text-[10.5px] font-bold uppercase tracking-wider text-gray-900 pb-1 mb-2.5 border-b"
         style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontFamily: 'var(--font-lora), Georgia, "Times New Roman", serif',
           borderColor: theme.accentColor,
         }}
       >
@@ -259,7 +259,7 @@ export function EditableCvPreview({
   const containerStyle: React.CSSProperties = isModern
     ? { borderLeftColor: theme.accentColor }
     : isProfessional
-    ? { fontFamily: 'Georgia, "Times New Roman", serif' }
+    ? { fontFamily: 'var(--font-lora), Georgia, "Times New Roman", serif' }
     : {};
 
   // ─── render ──────────────────────────────────────────────
@@ -269,26 +269,26 @@ export function EditableCvPreview({
 
       {/* ── Header ── */}
       <div
-        className={`pb-4 ${isClassic || isProfessional ? 'text-center' : ''} ${!isProfessional ? 'border-b-2' : ''}`}
+        className={`pb-3 ${isClassic || isProfessional ? 'text-center' : ''} ${!isProfessional ? 'border-b-2' : ''}`}
         style={{ borderColor: isClassic ? theme.accentColor : '#e5e7eb' }}
       >
         {/* Name */}
         <h1
           className={`font-bold leading-tight ${
             isMinimal ? 'text-2xl tracking-wide' :
-            isProfessional ? 'text-2xl uppercase tracking-[0.15em]' :
+            isProfessional ? 'text-[22px] tracking-[0.06em]' :
             'text-xl'
           }`}
           style={{
             color: isProfessional ? '#111111' : theme.accentColor,
-            ...(isProfessional ? { fontFamily: 'Georgia, "Times New Roman", serif' } : {}),
+            ...(isProfessional ? { fontFamily: 'var(--font-lora), Georgia, "Times New Roman", serif' } : {}),
           }}
         >
           {cv.name}
         </h1>
 
         {/* Job title — editable */}
-        <div className={isProfessional ? 'mt-1' : 'mt-0.5'}>
+        <div className={isProfessional ? 'mt-1 mb-2' : 'mt-0.5'}>
           <InlineEditor
             value={cv.job_title ?? ''}
             onChange={handleTitleChange}
@@ -297,85 +297,140 @@ export function EditableCvPreview({
           />
         </div>
 
-        {/* Professional: colored underline AFTER job title */}
-        {isProfessional && (
-          <div className="border-b-2 mt-2 mb-2" style={{ borderColor: theme.accentColor }} />
-        )}
-
-        {/* Contact info — editable */}
-        <div className="mt-2 space-y-1">
-          <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isClassic || isProfessional ? 'justify-center' : ''}`}>
-            {activeContacts.map(({ key }) => (
-              <ContactItem
-                key={key}
-                value={(cv[key] as string) ?? ''}
-                onEdit={(v) => handleContactEdit(key, v)}
-                onDelete={() => handleContactDelete(key)}
-              />
-            ))}
+        {/* Professional layout: contacts → black rule */}
+        {isProfessional ? (
+          <div>
+            {/* Contacts inline with · separator */}
+            <div className="flex flex-wrap justify-center items-center mt-1">
+              {activeContacts.map(({ key }, idx) => (
+                <span key={key} className="inline-flex items-center">
+                  {idx > 0 && <span className="mx-2 text-gray-400 select-none text-[11px]">·</span>}
+                  <ContactItem
+                    value={(cv[key] as string) ?? ''}
+                    onEdit={(v) => handleContactEdit(key, v)}
+                    onDelete={() => handleContactDelete(key)}
+                  />
+                </span>
+              ))}
+            </div>
+            {/* Add contact */}
+            {availableContacts.length > 0 && (
+              showAddContact ? (
+                <div className="flex items-center gap-1.5 pt-1 justify-center">
+                  <select
+                    value={addContactKey}
+                    onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
+                    className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  >
+                    {availableContacts.map(({ key, label }) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                  <input
+                    autoFocus
+                    value={addContactVal}
+                    onChange={(e) => setAddContactVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddContact();
+                      if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
+                    }}
+                    placeholder="Value..."
+                    className="text-xs border border-gray-200 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  />
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
+                    className="text-xs bg-[#1E3A5F] text-white px-2 py-0.5 rounded hover:bg-[#162d4a] transition-colors"
+                  >Add</button>
+                  <button
+                    onClick={() => { setShowAddContact(false); setAddContactVal(''); }}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >Cancel</button>
+                </div>
+              ) : (
+                <div className="flex justify-center mt-1">
+                  <button
+                    onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
+                    className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-gray-500 border border-dashed border-gray-200 hover:border-gray-300 rounded px-1.5 py-0.5 transition-colors"
+                  >
+                    <span className="text-sm leading-none">+</span> Add contact
+                  </button>
+                </div>
+              )
+            )}
+            {/* Black horizontal rule after contacts */}
+            <div className="border-b mt-3" style={{ borderColor: '#111111' }} />
           </div>
-
-          {availableContacts.length > 0 && (
-            showAddContact ? (
-              <div className={`flex items-center gap-1.5 pt-0.5 ${isClassic ? 'justify-center' : ''}`}>
-                <select
-                  value={addContactKey}
-                  onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
-                  className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                >
-                  {availableContacts.map(({ key, label }) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-                <input
-                  autoFocus
-                  value={addContactVal}
-                  onChange={(e) => setAddContactVal(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddContact();
-                    if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
-                  }}
-                  placeholder="Value..."
-                  className="text-xs border border-gray-200 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-gray-300"
+        ) : (
+          /* Non-professional contact display */
+          <div className="mt-2 space-y-1">
+            <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isClassic ? 'justify-center' : ''}`}>
+              {activeContacts.map(({ key }) => (
+                <ContactItem
+                  key={key}
+                  value={(cv[key] as string) ?? ''}
+                  onEdit={(v) => handleContactEdit(key, v)}
+                  onDelete={() => handleContactDelete(key)}
                 />
-                <button
-                  onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
-                  className="text-xs bg-[#1E3A5F] text-white px-2 py-0.5 rounded hover:bg-[#162d4a] transition-colors"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => { setShowAddContact(false); setAddContactVal(''); }}
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className={isClassic || isProfessional ? 'flex justify-center' : ''}>
-                <button
-                  onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
-                  className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-gray-500 border border-dashed border-gray-200 hover:border-gray-300 rounded px-1.5 py-0.5 transition-colors mt-0.5"
-                >
-                  <span className="text-sm leading-none">+</span> Add contact
-                </button>
-              </div>
-            )
-          )}
-        </div>
+              ))}
+            </div>
+            {availableContacts.length > 0 && (
+              showAddContact ? (
+                <div className={`flex items-center gap-1.5 pt-0.5 ${isClassic ? 'justify-center' : ''}`}>
+                  <select
+                    value={addContactKey}
+                    onChange={(e) => setAddContactKey(e.target.value as ContactKey)}
+                    className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  >
+                    {availableContacts.map(({ key, label }) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                  <input
+                    autoFocus
+                    value={addContactVal}
+                    onChange={(e) => setAddContactVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddContact();
+                      if (e.key === 'Escape') { setShowAddContact(false); setAddContactVal(''); }
+                    }}
+                    placeholder="Value..."
+                    className="text-xs border border-gray-200 rounded px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  />
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); handleAddContact(); }}
+                    className="text-xs bg-[#1E3A5F] text-white px-2 py-0.5 rounded hover:bg-[#162d4a] transition-colors"
+                  >Add</button>
+                  <button
+                    onClick={() => { setShowAddContact(false); setAddContactVal(''); }}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >Cancel</button>
+                </div>
+              ) : (
+                <div className={isClassic ? 'flex justify-center' : ''}>
+                  <button
+                    onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
+                    className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-gray-500 border border-dashed border-gray-200 hover:border-gray-300 rounded px-1.5 py-0.5 transition-colors mt-0.5"
+                  >
+                    <span className="text-sm leading-none">+</span> Add contact
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Summary — editable ── */}
       {cv.summary && (
         <section>
-          <SectionTitle theme={theme}>Professional Summary</SectionTitle>
+          <SectionTitle theme={theme}>{isProfessional ? 'Professional Summary' : 'Professional Summary'}</SectionTitle>
           <SummaryEditor value={cv.summary} onChange={handleSummaryChange} />
         </section>
       )}
 
       {/* ── Experience — bullets editable + add new ── */}
       <section>
-        <SectionTitle theme={theme}>Experience</SectionTitle>
+        <SectionTitle theme={theme}>{isProfessional ? 'Work Experience' : 'Experience'}</SectionTitle>
         <div className="space-y-4">
           {cv.experience.map((exp, i) => {
             const isActive = editingExperienceIdx === i;
@@ -463,7 +518,7 @@ export function EditableCvPreview({
                   <ul className="mt-1 space-y-1">
                     {exp.bullets.map((bullet, j) => (
                       <li key={j} className="flex gap-1.5 text-gray-700 leading-relaxed text-xs">
-                        <span className="flex-shrink-0 mt-0.5" style={{ color: theme.accentColor }}>•</span>
+                        <span className="flex-shrink-0 mt-0.5" style={{ color: isProfessional ? '#333333' : theme.accentColor }}>•</span>
                         <span>{bullet}</span>
                       </li>
                     ))}
@@ -563,7 +618,7 @@ export function EditableCvPreview({
       {/* ── Skills — editable ── */}
       {hasSkills && (
         <section>
-          <SectionTitle theme={theme}>Skills</SectionTitle>
+          <SectionTitle theme={theme}>{isProfessional ? 'Technical Skills' : 'Skills'}</SectionTitle>
           <SkillsEditor skills={cv.skills} onChange={handleSkillsChange} accentColor={theme.accentColor} />
         </section>
       )}
