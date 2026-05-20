@@ -19,26 +19,27 @@ export function registerFonts() {
     ],
   });
 
+  // Full TTF files from Google Fonts GitHub — includes all Unicode ranges (Latin Extended-A, Turkish, etc.)
   Font.register({
     family: 'Lora',
     fonts: [
       {
-        src: 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-normal.woff',
+        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Regular.ttf',
         fontWeight: 400,
         fontStyle: 'normal',
       },
       {
-        src: 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-italic.woff',
+        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Italic.ttf',
         fontWeight: 400,
         fontStyle: 'italic',
       },
       {
-        src: 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-700-normal.woff',
+        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-Bold.ttf',
         fontWeight: 700,
         fontStyle: 'normal',
       },
       {
-        src: 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-700-italic.woff',
+        src: 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/lora/static/Lora-BoldItalic.ttf',
         fontWeight: 700,
         fontStyle: 'italic',
       },

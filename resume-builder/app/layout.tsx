@@ -5,7 +5,7 @@ import { APP_NAME } from '@/lib/constants';
 
 const inter = Inter({ subsets: ['latin'] });
 const lora = Lora({
-  subsets: ['latin'],
+  subsets: ['latin', 'latin-ext'],
   weight: ['400', '700'],
   style: ['normal', 'italic'],
   variable: '--font-lora',
