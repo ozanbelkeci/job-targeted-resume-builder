@@ -286,24 +286,25 @@ export function EditableCvPreview({
         >
           {cv.name}
         </h1>
-        {/* Professional: colored underline below name */}
-        {isProfessional && (
-          <div className="border-b-2 mt-2 mb-1" style={{ borderColor: theme.accentColor }} />
-        )}
 
         {/* Job title — editable */}
-        <div className="mt-0.5">
+        <div className={isProfessional ? 'mt-1' : 'mt-0.5'}>
           <InlineEditor
             value={cv.job_title ?? ''}
             onChange={handleTitleChange}
             placeholder="Add job title..."
-            className="text-sm text-gray-500 font-medium"
+            className={`text-sm ${isProfessional ? 'italic text-gray-500' : 'text-gray-500 font-medium'}`}
           />
         </div>
 
+        {/* Professional: colored underline AFTER job title */}
+        {isProfessional && (
+          <div className="border-b-2 mt-2 mb-2" style={{ borderColor: theme.accentColor }} />
+        )}
+
         {/* Contact info — editable */}
         <div className="mt-2 space-y-1">
-          <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isClassic ? 'justify-center' : ''}`}>
+          <div className={`flex flex-wrap gap-x-4 gap-y-1 ${isClassic || isProfessional ? 'justify-center' : ''}`}>
             {activeContacts.map(({ key }) => (
               <ContactItem
                 key={key}
@@ -351,7 +352,7 @@ export function EditableCvPreview({
                 </button>
               </div>
             ) : (
-              <div className={isClassic ? 'flex justify-center' : ''}>
+              <div className={isClassic || isProfessional ? 'flex justify-center' : ''}>
                 <button
                   onClick={() => { setAddContactKey(availableContacts[0].key); setShowAddContact(true); }}
                   className="flex items-center gap-0.5 text-xs text-gray-300 hover:text-gray-500 border border-dashed border-gray-200 hover:border-gray-300 rounded px-1.5 py-0.5 transition-colors mt-0.5"
@@ -386,37 +387,71 @@ export function EditableCvPreview({
                   isActive ? 'ring-2 ring-gray-200 bg-gray-50/60' : isOther ? 'opacity-60' : ''
                 }`}
               >
-                <div className="flex justify-between items-start gap-2 mb-1">
-                  <div>
-                    <p className="font-semibold text-gray-900 text-xs">{exp.title}</p>
-                    <p className="text-gray-500 text-xs">{exp.company}</p>
+                {isProfessional ? (
+                  <div className="mb-1">
+                    <div className="flex justify-between items-baseline gap-2">
+                      <span className="font-bold text-gray-900 text-[12px]">{exp.company}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
+                        {!isActive && (
+                          <>
+                            <button
+                              onClick={() => onSetEditingExperience(i)}
+                              className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
+                            >
+                              Edit bullets
+                            </button>
+                            <button
+                              onClick={() => {
+                                const updated = cv.experience.filter((_, idx) => idx !== i);
+                                onChange({ ...cv, experience: updated });
+                              }}
+                              className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                              aria-label="Remove experience"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <p className="italic text-[11.5px] text-gray-600">{exp.title}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
-                    {!isActive && (
-                      <>
-                        <button
-                          onClick={() => onSetEditingExperience(i)}
-                          className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
-                        >
-                          Edit bullets
-                        </button>
-                        <button
-                          onClick={() => {
-                            const updated = cv.experience.filter((_, idx) => idx !== i);
-                            onChange({ ...cv, experience: updated });
-                          }}
-                          className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                          aria-label="Remove experience"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
+                ) : (
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-xs">{exp.title}</p>
+                      <p className="text-gray-500 text-xs">{exp.company}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-xs whitespace-nowrap">{exp.duration}</span>
+                      {!isActive && (
+                        <>
+                          <button
+                            onClick={() => onSetEditingExperience(i)}
+                            className="text-xs text-[#1E3A5F] hover:text-[#162d4a] border border-[#1E3A5F]/30 rounded px-1.5 py-0.5 hover:bg-[#1E3A5F]/5 transition-colors whitespace-nowrap"
+                          >
+                            Edit bullets
+                          </button>
+                          <button
+                            onClick={() => {
+                              const updated = cv.experience.filter((_, idx) => idx !== i);
+                              onChange({ ...cv, experience: updated });
+                            }}
+                            className="w-5 h-5 flex items-center justify-center rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                            aria-label="Remove experience"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {isActive ? (
                   <BulletsEditor
@@ -501,12 +536,24 @@ export function EditableCvPreview({
           <SectionTitle theme={theme}>Education</SectionTitle>
           <div className="space-y-2">
             {cv.education.map((edu, i) => (
-              <div key={i} className="flex justify-between items-start gap-2">
-                <div>
-                  <p className="font-semibold text-gray-900 text-xs">{edu.degree}</p>
-                  <p className="text-gray-500 text-xs">{edu.school}</p>
-                </div>
-                <span className="text-gray-400 text-xs whitespace-nowrap">{edu.year}</span>
+              <div key={i}>
+                {isProfessional ? (
+                  <div>
+                    <div className="flex justify-between items-baseline gap-2">
+                      <span className="font-bold text-gray-900 text-[12px]">{edu.school}</span>
+                      <span className="text-gray-400 text-xs whitespace-nowrap">{edu.year}</span>
+                    </div>
+                    <p className="italic text-[11.5px] text-gray-600 mt-0.5">{edu.degree}</p>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-xs">{edu.degree}</p>
+                      <p className="text-gray-500 text-xs">{edu.school}</p>
+                    </div>
+                    <span className="text-gray-400 text-xs whitespace-nowrap">{edu.year}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

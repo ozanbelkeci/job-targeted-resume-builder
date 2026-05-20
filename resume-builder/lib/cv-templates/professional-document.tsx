@@ -2,6 +2,14 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import type { OptimizedCv, CvSkills } from '@/types';
 
+/*
+  Professional template — Times-Roman serif, ATS-optimised.
+  Rules:
+  - NO React.Fragment / <> inside PDF render tree  →  silently drops content
+  - NO unsupported CSS props (gap, gap-x, …)
+  - Bold via fontFamily: 'Times-Bold', italic via 'Times-Italic' (standard PDF fonts)
+*/
+
 const SKILL_CATS: Array<{ key: keyof CvSkills; label: string }> = [
   { key: 'languages',     label: 'Languages' },
   { key: 'frameworks',    label: 'Frameworks' },
@@ -22,14 +30,13 @@ function buildStyles(accentColor: string) {
       paddingRight: 52,
     },
 
-    // ── Header ─────────────────────────────────────
+    // ── Header ────────────────────────────────────────────────
     headerName: {
       fontFamily: 'Times-Bold',
-      fontSize: 22,
+      fontSize: 20,
       color: '#111111',
       textAlign: 'center',
-      letterSpacing: 2.5,
-      textTransform: 'uppercase',
+      letterSpacing: 1.5,
       marginBottom: 2,
     },
     headerJobTitle: {
@@ -37,62 +44,55 @@ function buildStyles(accentColor: string) {
       fontSize: 11,
       color: '#444444',
       textAlign: 'center',
-      marginBottom: 4,
-    },
-    headerDivider: {
-      borderBottomWidth: 1.5,
-      borderBottomColor: accentColor,
-      marginVertical: 5,
-    },
-    headerContactRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: 0,
+      marginBottom: 5,
     },
     headerContact: {
       fontSize: 9,
       color: '#333333',
-      fontFamily: 'Times-Roman',
-    },
-    headerContactSep: {
-      fontSize: 9,
-      color: '#888888',
-      marginHorizontal: 5,
-    },
-
-    // ── Section ────────────────────────────────────
-    section: {
-      marginBottom: 12,
-    },
-    sectionTitle: {
-      fontFamily: 'Times-Bold',
-      fontSize: 11,
-      color: '#111111',
-      textTransform: 'uppercase',
-      letterSpacing: 1.2,
-      paddingBottom: 2,
-      borderBottomWidth: 1,
-      borderBottomColor: accentColor,
+      textAlign: 'center',
       marginBottom: 6,
     },
-
-    // ── Summary ────────────────────────────────────
-    summary: {
-      fontSize: 9.5,
-      color: '#222222',
-      lineHeight: 1.6,
-      fontFamily: 'Times-Roman',
-    },
-
-    // ── Experience ─────────────────────────────────
-    expBlock: {
+    headerRule: {
+      borderBottomWidth: 1,
+      borderBottomColor: '#111111',
       marginBottom: 10,
     },
-    expHeaderRow: {
+
+    // ── Section ───────────────────────────────────────────────
+    section: {
+      marginBottom: 10,
+    },
+    sectionHeaderWrap: {
+      marginBottom: 5,
+    },
+    sectionTitleText: {
+      fontFamily: 'Times-Bold',
+      fontSize: 10.5,
+      color: '#111111',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    sectionRule: {
+      borderBottomWidth: 0.75,
+      borderBottomColor: accentColor,
+      marginTop: 2,
+    },
+
+    // ── Summary ───────────────────────────────────────────────
+    summaryText: {
+      fontSize: 9.5,
+      color: '#222222',
+      lineHeight: 1.55,
+    },
+
+    // ── Experience ────────────────────────────────────────────
+    expBlock: {
+      marginBottom: 9,
+    },
+    expRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'baseline',
+      alignItems: 'flex-end',
     },
     expCompany: {
       fontFamily: 'Times-Bold',
@@ -102,13 +102,12 @@ function buildStyles(accentColor: string) {
     expDuration: {
       fontFamily: 'Times-Roman',
       fontSize: 9,
-      color: '#555555',
+      color: '#444444',
     },
     expTitleRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'baseline',
-      marginBottom: 4,
+      marginBottom: 3,
     },
     expTitle: {
       fontFamily: 'Times-Italic',
@@ -117,7 +116,7 @@ function buildStyles(accentColor: string) {
     },
     bullet: {
       flexDirection: 'row',
-      marginBottom: 3,
+      marginBottom: 2.5,
       paddingLeft: 8,
     },
     bulletDot: {
@@ -131,17 +130,16 @@ function buildStyles(accentColor: string) {
       fontSize: 9.5,
       color: '#222222',
       lineHeight: 1.5,
-      fontFamily: 'Times-Roman',
     },
 
-    // ── Education ──────────────────────────────────
+    // ── Education ─────────────────────────────────────────────
     eduBlock: {
-      marginBottom: 8,
+      marginBottom: 7,
     },
-    eduHeaderRow: {
+    eduRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'baseline',
+      alignItems: 'flex-end',
     },
     eduSchool: {
       fontFamily: 'Times-Bold',
@@ -151,7 +149,7 @@ function buildStyles(accentColor: string) {
     eduYear: {
       fontFamily: 'Times-Roman',
       fontSize: 9,
-      color: '#555555',
+      color: '#444444',
     },
     eduDegree: {
       fontFamily: 'Times-Italic',
@@ -160,37 +158,39 @@ function buildStyles(accentColor: string) {
       marginTop: 1,
     },
 
-    // ── Skills ─────────────────────────────────────
+    // ── Skills ────────────────────────────────────────────────
     skillRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      marginBottom: 4,
-      alignItems: 'flex-start',
+      marginBottom: 3,
     },
-    skillCatLabel: {
+    skillLabel: {
       fontFamily: 'Times-Bold',
       fontSize: 9.5,
       color: '#111111',
     },
-    skillCatValues: {
+    skillValues: {
       fontFamily: 'Times-Roman',
       fontSize: 9.5,
       color: '#333333',
       flex: 1,
-      flexWrap: 'wrap',
     },
-    skillPills: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    skillPill: {
+    skillsFlat: {
       fontFamily: 'Times-Roman',
       fontSize: 9.5,
       color: '#333333',
-      marginRight: 6,
-      marginBottom: 3,
+      lineHeight: 1.5,
     },
   });
+}
+
+function SectionHeader({ title, s }: { title: string; s: ReturnType<typeof buildStyles> }) {
+  return (
+    <View style={s.sectionHeaderWrap}>
+      <Text style={s.sectionTitleText}>{title}</Text>
+      <View style={s.sectionRule} />
+    </View>
+  );
 }
 
 export function ProfessionalDocument({
@@ -206,8 +206,11 @@ export function ProfessionalDocument({
     ? (cv.skills as string[]).length > 0
     : SKILL_CATS.some(({ key }) => ((cv.skills as CvSkills)[key] ?? []).length > 0);
 
-  const contactParts = [cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.portfolio, cv.website]
-    .filter(Boolean) as string[];
+  const contactParts = [
+    cv.email, cv.phone, cv.location, cv.linkedin, cv.github, cv.portfolio, cv.website,
+  ].filter(Boolean) as string[];
+
+  const contactLine = contactParts.join('   ·   ');
 
   return (
     <Document>
@@ -216,31 +219,24 @@ export function ProfessionalDocument({
         {/* ── Header ── */}
         <Text style={s.headerName}>{cv.name}</Text>
         {cv.job_title ? <Text style={s.headerJobTitle}>{cv.job_title}</Text> : null}
-        <View style={s.headerDivider} />
-        <View style={s.headerContactRow}>
-          {contactParts.map((part, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <Text style={s.headerContactSep}>|</Text>}
-              <Text style={s.headerContact}>{part}</Text>
-            </React.Fragment>
-          ))}
-        </View>
+        {contactLine ? <Text style={s.headerContact}>{contactLine}</Text> : null}
+        <View style={s.headerRule} />
 
         {/* ── Summary ── */}
         {cv.summary ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>Summary</Text>
-            <Text style={s.summary}>{cv.summary}</Text>
+            <SectionHeader title="Professional Summary" s={s} />
+            <Text style={s.summaryText}>{cv.summary}</Text>
           </View>
         ) : null}
 
         {/* ── Experience ── */}
-        {cv.experience.length > 0 ? (
+        {cv.experience && cv.experience.length > 0 ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>Experience</Text>
+            <SectionHeader title="Work Experience" s={s} />
             {cv.experience.map((exp, i) => (
               <View key={i} style={s.expBlock}>
-                <View style={s.expHeaderRow}>
+                <View style={s.expRow}>
                   <Text style={s.expCompany}>{exp.company}</Text>
                   <Text style={s.expDuration}>{exp.duration}</Text>
                 </View>
@@ -259,12 +255,12 @@ export function ProfessionalDocument({
         ) : null}
 
         {/* ── Education ── */}
-        {cv.education.length > 0 ? (
+        {cv.education && cv.education.length > 0 ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>Education</Text>
+            <SectionHeader title="Education" s={s} />
             {cv.education.map((edu, i) => (
               <View key={i} style={s.eduBlock}>
-                <View style={s.eduHeaderRow}>
+                <View style={s.eduRow}>
                   <Text style={s.eduSchool}>{edu.school}</Text>
                   <Text style={s.eduYear}>{edu.year}</Text>
                 </View>
@@ -277,26 +273,22 @@ export function ProfessionalDocument({
         {/* ── Skills ── */}
         {hasSkills ? (
           <View style={s.section}>
-            <Text style={s.sectionTitle}>Skills</Text>
+            <SectionHeader title="Technical Skills" s={s} />
             {skillsIsArray ? (
-              <View style={s.skillPills}>
-                {(cv.skills as string[]).map((skill, i) => (
-                  <Text key={i} style={s.skillPill}>{skill}{i < (cv.skills as string[]).length - 1 ? ',' : ''}</Text>
-                ))}
-              </View>
+              <Text style={s.skillsFlat}>{(cv.skills as string[]).join(', ')}</Text>
             ) : (
-              <>
+              <View>
                 {SKILL_CATS.map(({ key, label }) => {
                   const arr = (cv.skills as CvSkills)[key] ?? [];
                   if (arr.length === 0) return null;
                   return (
                     <View key={key} style={s.skillRow}>
-                      <Text style={s.skillCatLabel}>{label}: </Text>
-                      <Text style={s.skillCatValues}>{arr.join(', ')}</Text>
+                      <Text style={s.skillLabel}>{label}: </Text>
+                      <Text style={s.skillValues}>{arr.join(', ')}</Text>
                     </View>
                   );
                 })}
-              </>
+              </View>
             )}
           </View>
         ) : null}
