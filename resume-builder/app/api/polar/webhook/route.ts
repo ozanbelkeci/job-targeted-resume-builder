@@ -30,10 +30,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
 
     switch (event.type) {
-      case 'order.created': {
+      // One-time purchases: Starter (+5 credits) and Lifetime (is_pro forever)
+      case 'order.paid': {
         const productId = event.data.productId;
-        const userId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
-        if (!userId) break;
+        const userId = String(event.data.metadata?.['user_id'] ?? '');
+        if (!userId || !productId) break;
 
         if (productId === POLAR_PRODUCT_IDS.STARTER) {
           const { data: current } = await supabase
@@ -58,16 +59,14 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'subscription.created': {
+      // Pro subscription becomes active (new or payment recovered)
+      case 'subscription.active': {
         const productId = event.data.productId;
-        const userId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
+        const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId) break;
 
         if (productId === POLAR_PRODUCT_IDS.PRO) {
-          const proExpiresAt = event.data.currentPeriodEnd
-            ? new Date(event.data.currentPeriodEnd).toISOString()
-            : (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString(); })();
-
+          const proExpiresAt = event.data.currentPeriodEnd.toISOString();
           await supabase.from('user_credits').upsert({
             user_id: userId,
             is_pro: true,
@@ -78,24 +77,26 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      // Pro subscription renewed — update expiry date
       case 'subscription.updated': {
         const productId = event.data.productId;
-        const userId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
+        const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId) break;
 
-        if (productId === POLAR_PRODUCT_IDS.PRO && event.data.currentPeriodEnd) {
+        if (productId === POLAR_PRODUCT_IDS.PRO) {
           await supabase.from('user_credits').upsert({
             user_id: userId,
             is_pro: true,
-            pro_expires_at: new Date(event.data.currentPeriodEnd).toISOString(),
+            pro_expires_at: event.data.currentPeriodEnd.toISOString(),
             updated_at: new Date().toISOString(),
           });
         }
         break;
       }
 
+      // Pro subscription canceled/revoked
       case 'subscription.revoked': {
-        const userId = (event.data.metadata as Record<string, string> | undefined)?.user_id;
+        const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId) break;
 
         await supabase.from('user_credits').upsert({
