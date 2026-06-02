@@ -7,6 +7,7 @@ import { HeroCvStack } from '@/components/HeroCvStack';
 import { LandingBackground } from '@/components/LandingBackground';
 import { RotatingSubtitle } from '@/components/RotatingSubtitle';
 import { AnimatedStats } from '@/components/AnimatedStats';
+import { PricingCheckoutButton } from '@/components/PricingCheckoutButton';
 
 
 export default async function LandingPage() {
@@ -324,12 +325,13 @@ export default async function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={user ? '/app/upload' : '/login'}
+              <PricingCheckoutButton
+                plan="starter"
+                isLoggedIn={!!user}
                 className="block w-full text-center bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl py-2.5 text-sm font-semibold transition-all shadow-sm hover:shadow-md"
               >
                 Buy Credits
-              </Link>
+              </PricingCheckoutButton>
             </div>
 
             {/* Pro — premium treatment */}
@@ -361,12 +363,13 @@ export default async function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={user ? '/app/upload' : '/login'}
+              <PricingCheckoutButton
+                plan="pro"
+                isLoggedIn={!!user}
                 className="block w-full text-center bg-white hover:bg-blue-50 text-[#1E3A5F] rounded-xl py-2.5 text-sm font-bold transition-all shadow-lg shadow-black/10 hover:-translate-y-px hover:shadow-xl"
               >
                 Go Pro
-              </Link>
+              </PricingCheckoutButton>
             </div>
           </div>
 
@@ -385,12 +388,13 @@ export default async function LandingPage() {
                 <span className="text-3xl font-bold text-[#1E3A5F]">$79</span>
                 <span className="text-sm text-gray-400 ml-1">one-time</span>
               </div>
-              <Link
-                href={user ? '/app/upload' : '/login'}
+              <PricingCheckoutButton
+                plan="lifetime"
+                isLoggedIn={!!user}
                 className="bg-[#1E3A5F] text-white rounded-xl px-6 py-2.5 text-sm font-semibold whitespace-nowrap hover:bg-[#162d4a] transition-all shadow-sm hover:shadow-md hover:-translate-y-px"
               >
                 Get Lifetime →
-              </Link>
+              </PricingCheckoutButton>
             </div>
           </div>
         </div>
