@@ -7,6 +7,11 @@ import { POLAR_PRODUCT_IDS, APP_URL } from '@/lib/constants';
 
 type Plan = 'starter' | 'pro' | 'lifetime';
 
+// Sandbox ortamında self-signed sertifikaları atla (sadece lokal dev)
+if (process.env.POLAR_SANDBOX === 'true' && process.env.NODE_ENV !== 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
@@ -31,7 +36,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment not configured' }, { status: 500 });
     }
 
-    const polar = new Polar({ accessToken });
+    const isSandbox = process.env.POLAR_SANDBOX === 'true';
+    const polar = new Polar({
+      accessToken,
+      server: isSandbox ? 'sandbox' : 'production',
+    });
+
     const checkout = await polar.checkouts.create({
       products: [productId],
       metadata: { user_id: user.id },
