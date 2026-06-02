@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,9 +12,17 @@ import {
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
-  onSelectStarter: () => void;
-  onSelectPro: () => void;
-  onSelectLifetime: () => void;
+}
+
+type Plan = 'starter' | 'pro' | 'lifetime';
+
+function Spinner() {
+  return (
+    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
 }
 
 function CheckGreen({ label }: { label: string }) {
@@ -51,13 +60,28 @@ function XGray({ label }: { label: string }) {
   );
 }
 
-export function UpgradeModal({
-  open,
-  onClose,
-  onSelectStarter,
-  onSelectPro,
-  onSelectLifetime,
-}: UpgradeModalProps) {
+export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
+  const [loading, setLoading] = useState<Plan | null>(null);
+
+  async function handleSelect(plan: Plan) {
+    setLoading(plan);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error('checkout error:', err);
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-3xl w-full p-8">
@@ -88,20 +112,18 @@ export function UpgradeModal({
               <XGray label="LinkedIn Optimizer" />
             </ul>
             <button
-              onClick={onSelectStarter}
-              className="w-full bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl py-2.5 text-sm font-semibold transition-all shadow-sm hover:shadow-md"
+              onClick={() => handleSelect('starter')}
+              disabled={!!loading}
+              className="w-full bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-xl py-2.5 text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Buy Starter
+              {loading === 'starter' ? <><Spinner /> Processing…</> : 'Buy Starter'}
             </button>
           </div>
 
           {/* ── Pro (featured) ── */}
           <div className="relative bg-gradient-to-br from-[#1E3A5F] to-[#162d4a] rounded-2xl p-6 flex flex-col ring-2 ring-[#1E3A5F] shadow-xl shadow-[#1E3A5F]/20 overflow-hidden">
-            {/* Glass sheen */}
             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.07] to-transparent pointer-events-none" />
-            {/* Glow orbs */}
             <div className="absolute -top-6 -right-6 w-28 h-28 bg-blue-400/20 rounded-full blur-2xl pointer-events-none" />
-            {/* Badge */}
             <div className="absolute top-4 right-4 bg-white/15 border border-white/20 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
               Most Popular
             </div>
@@ -120,10 +142,11 @@ export function UpgradeModal({
               <CheckWhite label="LinkedIn Optimizer" />
             </ul>
             <button
-              onClick={onSelectPro}
-              className="w-full bg-white hover:bg-blue-50 text-[#1E3A5F] rounded-xl py-2.5 text-sm font-bold transition-all shadow-lg shadow-black/10 hover:-translate-y-px"
+              onClick={() => handleSelect('pro')}
+              disabled={!!loading}
+              className="w-full bg-white hover:bg-blue-50 text-[#1E3A5F] rounded-xl py-2.5 text-sm font-bold transition-all shadow-lg shadow-black/10 hover:-translate-y-px disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Go Pro
+              {loading === 'pro' ? <><Spinner /> Processing…</> : 'Go Pro'}
             </button>
           </div>
 
@@ -147,10 +170,11 @@ export function UpgradeModal({
               <CheckGreen label="LinkedIn Optimizer" />
             </ul>
             <button
-              onClick={onSelectLifetime}
-              className="w-full border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/5 rounded-xl py-2.5 text-sm font-semibold transition-colors"
+              onClick={() => handleSelect('lifetime')}
+              disabled={!!loading}
+              className="w-full border border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/5 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Get Lifetime →
+              {loading === 'lifetime' ? <><Spinner /> Processing…</> : 'Get Lifetime →'}
             </button>
           </div>
 

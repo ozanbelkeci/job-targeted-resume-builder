@@ -241,9 +241,6 @@ export function DashboardClient({ optimizations: initial, isPro, credits }: Prop
       <UpgradeModal
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        onSelectStarter={() => setShowUpgradeModal(false)}
-        onSelectPro={() => setShowUpgradeModal(false)}
-        onSelectLifetime={() => setShowUpgradeModal(false)}
       />
     </>
   );

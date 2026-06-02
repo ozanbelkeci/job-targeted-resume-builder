@@ -22,7 +22,8 @@ export const JOB_DESCRIPTION_MIN_CHARS = 100;
 export const SCRAPE_TIMEOUT_MS = 10000;
 export const PDF_DOWNLOAD_FILENAME = 'optimized-resume.pdf';
 
-export const PADDLE_PRODUCT_IDS = {
-  STARTER: process.env.PADDLE_PRODUCT_STARTER ?? '',
-  PRO: process.env.PADDLE_PRODUCT_PRO ?? '',
+export const POLAR_PRODUCT_IDS = {
+  STARTER:  process.env.POLAR_PRODUCT_STARTER  ?? '',
+  PRO:      process.env.POLAR_PRODUCT_PRO      ?? '',
+  LIFETIME: process.env.POLAR_PRODUCT_LIFETIME ?? '',
 } as const;

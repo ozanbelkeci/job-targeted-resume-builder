@@ -85,7 +85,7 @@ export default function TermsPage() {
               subscription periods.
             </p>
             <p>
-              Payments are processed securely by Paddle. Coversume does not store your payment card
+              Payments are processed securely by Polar. Coversume does not store your payment card
               information.
             </p>
           </Section>

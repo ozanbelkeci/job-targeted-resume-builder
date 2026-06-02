@@ -92,8 +92,8 @@ export default function PrivacyPage() {
                 OpenAI&apos;s data usage policies apply to API inputs.
               </li>
               <li>
-                <span className="font-medium text-gray-800">Paddle</span> — Payment processing.
-                Paddle handles all payment transactions. We do not store your payment card details.
+                <span className="font-medium text-gray-800">Polar</span> — Payment processing.
+                Polar handles all payment transactions. We do not store your payment card details.
               </li>
               <li>
                 <span className="font-medium text-gray-800">Resend</span> — Email delivery for
