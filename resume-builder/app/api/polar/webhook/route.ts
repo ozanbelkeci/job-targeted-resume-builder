@@ -30,36 +30,38 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
 
     switch (event.type) {
-      // One-time purchases: Starter (+5 credits) and Lifetime (is_pro forever)
       case 'order.paid': {
         const productId = event.data.productId;
         const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId || !productId) break;
 
         if (productId === POLAR_PRODUCT_IDS.STARTER) {
-          const { data: current } = await supabase
+          const { data: current, error: fetchErr } = await supabase
             .from('user_credits')
             .select('credits')
             .eq('user_id', userId)
             .single<{ credits: number }>();
 
-          await supabase.from('user_credits').upsert({
-            user_id: userId,
-            credits: (current?.credits ?? 0) + 5,
-            updated_at: new Date().toISOString(),
-          });
+          if (fetchErr) { console.error('polar webhook fetch credits error:', fetchErr); break; }
+
+          const { error } = await supabase
+            .from('user_credits')
+            .update({ credits: (current?.credits ?? 0) + 5, updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+
+          if (error) console.error('polar webhook update starter error:', error);
+
         } else if (productId === POLAR_PRODUCT_IDS.LIFETIME) {
-          await supabase.from('user_credits').upsert({
-            user_id: userId,
-            is_pro: true,
-            pro_expires_at: null,
-            updated_at: new Date().toISOString(),
-          });
+          const { error } = await supabase
+            .from('user_credits')
+            .update({ is_pro: true, pro_expires_at: null, updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+
+          if (error) console.error('polar webhook update lifetime error:', error);
         }
         break;
       }
 
-      // Pro subscription becomes active (new or payment recovered)
       case 'subscription.active': {
         const productId = event.data.productId;
         const userId = String(event.data.metadata?.['user_id'] ?? '');
@@ -67,44 +69,42 @@ export async function POST(request: NextRequest) {
 
         if (productId === POLAR_PRODUCT_IDS.PRO) {
           const proExpiresAt = event.data.currentPeriodEnd.toISOString();
-          await supabase.from('user_credits').upsert({
-            user_id: userId,
-            is_pro: true,
-            pro_expires_at: proExpiresAt,
-            updated_at: new Date().toISOString(),
-          });
+          const { error } = await supabase
+            .from('user_credits')
+            .update({ is_pro: true, pro_expires_at: proExpiresAt, updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+
+          if (error) console.error('polar webhook update pro error:', error);
         }
         break;
       }
 
-      // Pro subscription renewed — update expiry date
       case 'subscription.updated': {
         const productId = event.data.productId;
         const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId) break;
 
         if (productId === POLAR_PRODUCT_IDS.PRO) {
-          await supabase.from('user_credits').upsert({
-            user_id: userId,
-            is_pro: true,
-            pro_expires_at: event.data.currentPeriodEnd.toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          const { error } = await supabase
+            .from('user_credits')
+            .update({ is_pro: true, pro_expires_at: event.data.currentPeriodEnd.toISOString(), updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+
+          if (error) console.error('polar webhook update subscription error:', error);
         }
         break;
       }
 
-      // Pro subscription canceled/revoked
       case 'subscription.revoked': {
         const userId = String(event.data.metadata?.['user_id'] ?? '');
         if (!userId) break;
 
-        await supabase.from('user_credits').upsert({
-          user_id: userId,
-          is_pro: false,
-          pro_expires_at: null,
-          updated_at: new Date().toISOString(),
-        });
+        const { error } = await supabase
+          .from('user_credits')
+          .update({ is_pro: false, pro_expires_at: null, updated_at: new Date().toISOString() })
+          .eq('user_id', userId);
+
+        if (error) console.error('polar webhook revoke pro error:', error);
         break;
       }
 
