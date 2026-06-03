@@ -81,7 +81,6 @@ export default async function DashboardPage() {
         {/* Table */}
         <DashboardClient
           optimizations={optimizations}
-          isPro={credits?.is_pro ?? false}
           credits={credits?.credits ?? 0}
           plan={plan}
         />

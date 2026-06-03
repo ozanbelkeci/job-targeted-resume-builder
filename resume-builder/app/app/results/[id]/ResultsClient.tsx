@@ -287,18 +287,15 @@ const DEFAULT_CHECKLIST: ChecklistState = {
 export function ResultsClient({
   initialOptimization,
   plan,
-  isPro,
   isFree,
   originalResumeText,
 }: {
   initialOptimization: Optimization;
   plan: string;
-  isPro: boolean;
   isFree: boolean;
   originalResumeText: string;
 }) {
-  const isPlanPro     = plan === 'pro' || plan === 'lifetime';
-  const isPlanFree    = plan === 'free';
+  const isPlanPro = plan === 'pro' || plan === 'lifetime';
 
   const router = useRouter();
   const [optimization, setOptimization] = useState<Optimization>(initialOptimization);

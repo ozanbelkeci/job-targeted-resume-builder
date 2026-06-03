@@ -47,12 +47,11 @@ function ScoreBadge({ score }: { score: number }) {
 
 interface Props {
   optimizations: OptRow[];
-  isPro: boolean;
   credits: number;
   plan: string;
 }
 
-export function DashboardClient({ optimizations: initial, isPro, credits, plan }: Props) {
+export function DashboardClient({ optimizations: initial, credits, plan }: Props) {
   const [rows, setRows] = useState<OptRow[]>(initial);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

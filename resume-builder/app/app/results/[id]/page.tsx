@@ -51,7 +51,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     <ResultsClient
       initialOptimization={optimization}
       plan={plan}
-      isPro={isPro}
       isFree={isFree}
       originalResumeText={originalResumeText}
     />
