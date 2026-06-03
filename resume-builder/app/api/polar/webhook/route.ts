@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
           const { error } = await supabase
             .from('user_credits')
-            .update({ credits: (current?.credits ?? 0) + 5, updated_at: new Date().toISOString() })
+            .update({ credits: (current?.credits ?? 0) + 5, plan: 'starter', updated_at: new Date().toISOString() })
             .eq('user_id', userId);
 
           if (error) console.error('polar webhook update starter error:', error);
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         } else if (productId === POLAR_PRODUCT_IDS.LIFETIME) {
           const { error } = await supabase
             .from('user_credits')
-            .update({ is_pro: true, pro_expires_at: null, updated_at: new Date().toISOString() })
+            .update({ is_pro: true, plan: 'lifetime', credits: 999999, pro_expires_at: null, updated_at: new Date().toISOString() })
             .eq('user_id', userId);
 
           if (error) console.error('polar webhook update lifetime error:', error);
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           const proExpiresAt = event.data.currentPeriodEnd.toISOString();
           const { error } = await supabase
             .from('user_credits')
-            .update({ is_pro: true, pro_expires_at: proExpiresAt, updated_at: new Date().toISOString() })
+            .update({ is_pro: true, plan: 'pro', credits: 999999, pro_expires_at: proExpiresAt, updated_at: new Date().toISOString() })
             .eq('user_id', userId);
 
           if (error) console.error('polar webhook update pro error:', error);
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         if (productId === POLAR_PRODUCT_IDS.PRO) {
           const { error } = await supabase
             .from('user_credits')
-            .update({ is_pro: true, pro_expires_at: event.data.currentPeriodEnd.toISOString(), updated_at: new Date().toISOString() })
+            .update({ is_pro: true, plan: 'pro', credits: 999999, pro_expires_at: event.data.currentPeriodEnd.toISOString(), updated_at: new Date().toISOString() })
             .eq('user_id', userId);
 
           if (error) console.error('polar webhook update subscription error:', error);
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
         const { error } = await supabase
           .from('user_credits')
-          .update({ is_pro: false, pro_expires_at: null, updated_at: new Date().toISOString() })
+          .update({ is_pro: false, plan: 'free', credits: 0, pro_expires_at: null, updated_at: new Date().toISOString() })
           .eq('user_id', userId);
 
         if (error) console.error('polar webhook revoke pro error:', error);
