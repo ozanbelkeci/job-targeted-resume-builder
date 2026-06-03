@@ -94,13 +94,7 @@ export default function JobPage() {
       const creditsData = await creditsRes.json();
 
       if (creditsRes.ok) {
-        const { credits, is_pro, plan } = creditsData.data as { credits: number; is_pro: boolean; plan: string };
-        // Block only starter users with 0 credits — free users always proceed to /results/free
-        if (!is_pro && credits <= 0 && plan !== 'free') {
-          setShowUpgradeModal(true);
-          setIsLoading(false);
-          return;
-        }
+        // No blocking — all users can optimize; result routes to /results/free or /results/[id]
       }
 
       sessionStorage.setItem('jobDescription', textValue);

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { optimizeResume } from '@/lib/gemini';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { canSaveHistory, canOptimize, isPro } from '@/lib/plan-guard';
+import { canSaveResult, canOptimize, isPro } from '@/lib/plan-guard';
 
 interface OptimizeRequestBody {
   resumeId?: unknown;
@@ -95,16 +95,8 @@ export async function POST(request: NextRequest) {
 
     const atsScore = Math.round(Number(aiResult.ats_score) || 0);
 
-    // Deduct credit only for starter users (not free, not pro/lifetime)
-    if (!isPro(plan) && canSaveHistory(plan)) {
-      await supabase
-        .from('user_credits')
-        .update({ credits: credits.credits - 1, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id);
-    }
-
-    // Free users: return full result without saving to DB
-    if (!canSaveHistory(plan)) {
+    // No save path: free users OR starter with 0 credits → return full result
+    if (!canSaveResult(plan, credits.credits)) {
       return NextResponse.json({
         data: {
           result: {
@@ -147,6 +139,14 @@ export async function POST(request: NextRequest) {
     if (saveError) {
       console.error('Failed to save optimization:', saveError);
       return NextResponse.json({ error: 'Failed to save results' }, { status: 500 });
+    }
+
+    // Deduct credit for starter users (not pro/lifetime)
+    if (!isPro(plan)) {
+      await supabase
+        .from('user_credits')
+        .update({ credits: credits.credits - 1, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
     }
 
     return NextResponse.json({ data: { optimizationId: optimization.id } });
