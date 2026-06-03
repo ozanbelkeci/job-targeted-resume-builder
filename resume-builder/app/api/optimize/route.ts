@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
 
     const atsScore = Math.round(Number(aiResult.ats_score) || 0);
 
-    // Deduct credit (only if not pro/lifetime)
-    if (!isPro(plan)) {
+    // Deduct credit only for starter users (not free, not pro/lifetime)
+    if (!isPro(plan) && canSaveHistory(plan)) {
       await supabase
         .from('user_credits')
         .update({ credits: credits.credits - 1, updated_at: new Date().toISOString() })
