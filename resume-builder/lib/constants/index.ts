@@ -7,7 +7,7 @@ export const ATS_SCORE_THRESHOLDS = {
 } as const;
 
 export const CREDIT_LIMITS = {
-  FREE_INITIAL: 1,
+  FREE_INITIAL: 0,
   STARTER_PACK: 5,
   RATE_LIMIT_PER_MINUTE: 3,
 } as const;

@@ -25,7 +25,7 @@ export async function GET() {
       if (error.code === 'PGRST116') {
         const { data: newCredits, error: insertError } = await supabase
           .from('user_credits')
-          .insert({ user_id: user.id, credits: 1, is_pro: false })
+          .insert({ user_id: user.id, credits: 0, is_pro: false, plan: 'free' })
           .select('credits, is_pro, plan, pro_expires_at')
           .single();
 
