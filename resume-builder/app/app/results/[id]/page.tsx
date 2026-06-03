@@ -26,7 +26,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       .single<Optimization>(),
     supabase
       .from('user_credits')
-      .select('is_pro, plan')
+      .select('plan')
       .eq('user_id', user.id)
       .single(),
   ]);
@@ -43,7 +43,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .single();
 
   const plan = userCredits?.plan ?? 'free';
-  const isPro = userCredits?.is_pro ?? false;
   const isFree = plan === 'free';
   const originalResumeText = (resume?.original_text as string | null) ?? '';
 
