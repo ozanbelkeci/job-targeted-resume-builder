@@ -6,7 +6,6 @@ import { motion, type Variants } from 'framer-motion';
 import { AtsScoreGauge } from '@/components/AtsScoreGauge';
 import { LockedCvPreview } from '@/components/LockedCvPreview';
 import { UpgradeModal } from '@/components/UpgradeModal';
-import { AppNavbar } from '@/components/AppNavbar';
 import type { OptimizedCv } from '@/types';
 
 interface FreeResult {
@@ -104,8 +103,6 @@ export default function FreeResultsPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <AppNavbar userEmail={null} />
-
       {/* Warning banner */}
       <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5">
         <p className="max-w-6xl mx-auto text-xs text-amber-700 flex items-center gap-2">
