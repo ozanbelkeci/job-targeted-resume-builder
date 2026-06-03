@@ -90,13 +90,6 @@ export default function JobPage() {
     }
 
     try {
-      const creditsRes = await fetch('/api/credits/check');
-      const creditsData = await creditsRes.json();
-
-      if (creditsRes.ok) {
-        // No blocking — all users can optimize; result routes to /results/free or /results/[id]
-      }
-
       sessionStorage.setItem('jobDescription', textValue);
       sessionStorage.setItem('jobInputType', 'text');
 

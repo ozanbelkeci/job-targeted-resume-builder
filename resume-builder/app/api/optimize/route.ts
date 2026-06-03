@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { optimizeResume } from '@/lib/gemini';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { canSaveResult, canOptimize, isPro } from '@/lib/plan-guard';
+import { canSaveResult, isPro } from '@/lib/plan-guard';
 
 interface OptimizeRequestBody {
   resumeId?: unknown;
@@ -44,11 +44,7 @@ export async function POST(request: NextRequest) {
 
     const plan = credits.plan ?? 'free';
 
-    if (!canOptimize(plan, credits.credits)) {
-      return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
-    }
-
-    const body = (await request.json()) as OptimizeRequestBody;
+const body = (await request.json()) as OptimizeRequestBody;
     const { resumeId, jobDescription, jobInputType, jobUrl } = body;
 
     if (!resumeId || typeof resumeId !== 'string') {
