@@ -49,9 +49,10 @@ interface Props {
   optimizations: OptRow[];
   isPro: boolean;
   credits: number;
+  plan: string;
 }
 
-export function DashboardClient({ optimizations: initial, isPro, credits }: Props) {
+export function DashboardClient({ optimizations: initial, isPro, credits, plan }: Props) {
   const [rows, setRows] = useState<OptRow[]>(initial);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -108,7 +109,7 @@ export function DashboardClient({ optimizations: initial, isPro, credits }: Prop
       sortable: false,
       render: (_: string, row: OptRow) => (
         <div className="flex items-center gap-2 justify-end">
-          {isPro ? (
+          {plan !== 'free' ? (
             <a
               href={`/api/download-pdf?id=${row.id}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#1E3A5F] border border-[#1E3A5F]/30 rounded-lg hover:bg-[#1E3A5F]/5 transition-colors"
@@ -149,6 +150,51 @@ export function DashboardClient({ optimizations: initial, isPro, credits }: Prop
     },
   ];
 
+  if (plan === 'free') {
+    return (
+      <>
+        <motion.div
+          className="relative bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-sm overflow-hidden"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.15 }}
+        >
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+          <div className="w-16 h-16 rounded-2xl bg-[#1E3A5F]/5 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[#1E3A5F]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <p className="text-gray-700 text-lg font-semibold mb-1">Your optimizations aren&apos;t saved yet</p>
+          <p className="text-gray-400 text-sm mb-2">Upgrade to Starter to save all your results, download PDFs, and track your applications.</p>
+          {credits > 0 && (
+            <p className="text-blue-600 text-sm font-medium mb-6">{credits} free optimization{credits !== 1 ? 's' : ''} remaining</p>
+          )}
+          {credits <= 0 && (
+            <p className="text-amber-600 text-sm font-medium mb-6">No optimizations remaining — upgrade to continue</p>
+          )}
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#162d4a] text-white rounded-lg px-6 py-2.5 text-sm font-semibold shadow-sm transition-all hover:-translate-y-px hover:shadow-md"
+            >
+              Get Starter — $5 →
+            </button>
+            {credits > 0 && (
+              <Link
+                href="/app/upload"
+                className="inline-flex items-center gap-2 border border-gray-200 text-gray-600 hover:text-[#1E3A5F] hover:border-[#1E3A5F]/30 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors"
+              >
+                Optimize Resume
+              </Link>
+            )}
+          </div>
+        </motion.div>
+        <UpgradeModal open={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+      </>
+    );
+  }
+
   if (rows.length === 0) {
     return (
       <motion.div
@@ -177,8 +223,8 @@ export function DashboardClient({ optimizations: initial, isPro, credits }: Prop
 
   return (
     <>
-      {/* Credit status banner for free users */}
-      {!isPro && (
+      {/* Credit status banner for starter users */}
+      {plan === 'starter' && (
         <div className={`mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl text-sm border ${
           credits <= 0
             ? 'bg-amber-50 border-amber-200 text-amber-700'
@@ -186,15 +232,17 @@ export function DashboardClient({ optimizations: initial, isPro, credits }: Prop
         }`}>
           <span>
             {credits <= 0
-              ? 'No optimizations remaining — Upgrade to continue'
-              : `${credits} free optimization${credits !== 1 ? 's' : ''} remaining`}
+              ? 'No optimizations remaining — Upgrade to Pro for unlimited'
+              : `${credits} optimization${credits !== 1 ? 's' : ''} remaining`}
           </span>
-          <button
-            onClick={() => setShowUpgradeModal(true)}
-            className="text-xs font-semibold underline underline-offset-2 hover:no-underline ml-4"
-          >
-            Upgrade →
-          </button>
+          {credits <= 0 && (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="text-xs font-semibold underline underline-offset-2 hover:no-underline ml-4"
+            >
+              Upgrade →
+            </button>
+          )}
         </div>
       )}
 

@@ -77,7 +77,12 @@ export default function ProcessingPage() {
         sessionStorage.removeItem('jobInputType');
         sessionStorage.removeItem('jobUrl');
 
-        router.push(`/app/results/${result.data.optimizationId}`);
+        if (result.data.optimizationId) {
+          router.push(`/app/results/${result.data.optimizationId}`);
+        } else if (result.data.result) {
+          sessionStorage.setItem('freeOptimizationResult', JSON.stringify(result.data.result));
+          router.push('/app/results/free');
+        }
       })
       .catch(() => {
         clearInterval(stepInterval);

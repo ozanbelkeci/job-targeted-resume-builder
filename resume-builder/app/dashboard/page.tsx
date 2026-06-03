@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AppNavbar } from '@/components/AppNavbar';
 import { DashboardClient } from './DashboardClient';
 import { FadeUp } from '@/components/FadeUp';
+import { canSaveHistory } from '@/lib/plan-guard';
 import type { Optimization, UserCredits } from '@/types';
 
 export default async function DashboardPage() {
@@ -16,20 +17,24 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const [{ data: optimizations }, { data: credits }] = await Promise.all([
-    supabase
-      .from('optimizations')
-      .select('id, job_title, job_company, ats_score, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .returns<Pick<Optimization, 'id' | 'job_title' | 'job_company' | 'ats_score' | 'created_at'>[]>(),
-    supabase
-      .from('user_credits')
-      .select('credits, is_pro')
-      .eq('user_id', user.id)
-      .single<Pick<UserCredits, 'credits' | 'is_pro'>>(),
-  ]);
+  const { data: credits } = await supabase
+    .from('user_credits')
+    .select('credits, is_pro, plan')
+    .eq('user_id', user.id)
+    .single<Pick<UserCredits, 'credits' | 'is_pro' | 'plan'>>();
+
+  const plan = (credits?.plan ?? 'free') as string;
+
+  const optimizations = canSaveHistory(plan)
+    ? (await supabase
+        .from('optimizations')
+        .select('id, job_title, job_company, ats_score, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .returns<Pick<Optimization, 'id' | 'job_title' | 'job_company' | 'ats_score' | 'created_at'>[]>()
+      ).data ?? []
+    : [];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -47,12 +52,12 @@ export default async function DashboardPage() {
           <FadeUp delay={0.1}>
           <div className="relative bg-white border border-gray-200 rounded-xl px-4 py-3 text-right shadow-sm overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" />
-            {credits?.is_pro ? (
+            {plan === 'pro' || plan === 'lifetime' ? (
               <>
                 <p className="text-xs text-gray-400">Plan</p>
                 <p className="font-semibold text-[#1E3A5F] flex items-center gap-1.5 justify-end">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                  Pro — Unlimited
+                  {plan === 'lifetime' ? 'Lifetime' : 'Pro'} — Unlimited
                 </p>
               </>
             ) : (
@@ -75,9 +80,10 @@ export default async function DashboardPage() {
 
         {/* Table */}
         <DashboardClient
-          optimizations={optimizations ?? []}
+          optimizations={optimizations}
           isPro={credits?.is_pro ?? false}
           credits={credits?.credits ?? 0}
+          plan={plan}
         />
       </div>
     </div>

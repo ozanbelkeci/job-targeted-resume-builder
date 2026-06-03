@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { optimizeResume } from '@/lib/gemini';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { canSaveHistory, canOptimize, isPro } from '@/lib/plan-guard';
 
 interface OptimizeRequestBody {
   resumeId?: unknown;
@@ -33,15 +34,17 @@ export async function POST(request: NextRequest) {
 
     const { data: credits, error: creditsError } = await supabase
       .from('user_credits')
-      .select('credits, is_pro')
+      .select('credits, is_pro, plan')
       .eq('user_id', user.id)
-      .single();
+      .single<{ credits: number; is_pro: boolean; plan: string }>();
 
     if (creditsError || !credits) {
       return NextResponse.json({ error: 'Failed to verify credits' }, { status: 500 });
     }
 
-    if (!credits.is_pro && credits.credits <= 0) {
+    const plan = credits.plan ?? 'free';
+
+    if (!canOptimize(plan, credits.credits)) {
       return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
     }
 
@@ -92,7 +95,34 @@ export async function POST(request: NextRequest) {
 
     const atsScore = Math.round(Number(aiResult.ats_score) || 0);
 
-    // Save optimization to DB
+    // Deduct credit (only if not pro/lifetime)
+    if (!isPro(plan)) {
+      await supabase
+        .from('user_credits')
+        .update({ credits: credits.credits - 1, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+    }
+
+    // Free users: return full result without saving to DB
+    if (!canSaveHistory(plan)) {
+      return NextResponse.json({
+        data: {
+          result: {
+            job_title: aiResult.job_title,
+            job_company: aiResult.job_company && aiResult.job_company !== 'null' ? aiResult.job_company : null,
+            optimized_cv_json: aiResult.optimized_cv,
+            ats_score: atsScore,
+            ats_keywords: {
+              matched: aiResult.matched_keywords ?? [],
+              missing: aiResult.missing_keywords ?? [],
+            },
+            tips: aiResult.tips ?? [],
+          },
+        },
+      });
+    }
+
+    // Paid users: save to DB and return optimization ID
     const { data: optimization, error: saveError } = await supabase
       .from('optimizations')
       .insert({
@@ -117,14 +147,6 @@ export async function POST(request: NextRequest) {
     if (saveError) {
       console.error('Failed to save optimization:', saveError);
       return NextResponse.json({ error: 'Failed to save results' }, { status: 500 });
-    }
-
-    // Deduct credit (only after successful save)
-    if (!credits.is_pro) {
-      await supabase
-        .from('user_credits')
-        .update({ credits: credits.credits - 1, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id);
     }
 
     return NextResponse.json({ data: { optimizationId: optimization.id } });

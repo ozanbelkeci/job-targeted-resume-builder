@@ -286,15 +286,20 @@ const DEFAULT_CHECKLIST: ChecklistState = {
 
 export function ResultsClient({
   initialOptimization,
+  plan,
   isPro,
   isFree,
   originalResumeText,
 }: {
   initialOptimization: Optimization;
+  plan: string;
   isPro: boolean;
   isFree: boolean;
   originalResumeText: string;
 }) {
+  const isPlanPro     = plan === 'pro' || plan === 'lifetime';
+  const isPlanFree    = plan === 'free';
+
   const router = useRouter();
   const [optimization, setOptimization] = useState<Optimization>(initialOptimization);
 
@@ -727,7 +732,7 @@ export function ResultsClient({
 
         {/* ── Action bar ── */}
         <motion.div variants={panelVariants} className="flex flex-wrap items-center gap-2 mb-5 p-3 bg-white rounded-2xl border border-gray-200 shadow-sm">
-          {isPro ? (
+          {isPlanPro ? (
             <>
               <button
                 onClick={handleCoverLetterClick}

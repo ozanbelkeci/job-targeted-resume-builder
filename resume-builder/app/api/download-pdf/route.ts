@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!canDownloadPdf(userCredits?.plan ?? 'free', userCredits?.is_pro ?? false)) {
+    if (!canDownloadPdf(userCredits?.plan ?? 'free')) {
       return NextResponse.json({ error: 'upgrade_required' }, { status: 403 });
     }
 

@@ -42,13 +42,15 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .eq('id', optimization.resume_id)
     .single();
 
+  const plan = userCredits?.plan ?? 'free';
   const isPro = userCredits?.is_pro ?? false;
-  const isFree = !isPro;
+  const isFree = plan === 'free';
   const originalResumeText = (resume?.original_text as string | null) ?? '';
 
   return (
     <ResultsClient
       initialOptimization={optimization}
+      plan={plan}
       isPro={isPro}
       isFree={isFree}
       originalResumeText={originalResumeText}

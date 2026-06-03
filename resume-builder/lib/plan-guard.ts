@@ -1,5 +1,6 @@
-export const isPro = (is_pro: boolean): boolean => is_pro;
-export const hasCredits = (credits: number): boolean => credits > 0;
-export const canDownloadPdf = (plan: string, is_pro: boolean): boolean =>
-  is_pro || plan === 'starter' || plan === 'pro';
-export const canViewFullCv = (is_pro: boolean): boolean => is_pro;
+export const canDownloadPdf  = (plan: string): boolean => plan !== 'free';
+export const canViewFullCv   = (plan: string): boolean => plan !== 'free';
+export const canSaveHistory  = (plan: string): boolean => plan !== 'free';
+export const isPro           = (plan: string): boolean => plan === 'pro' || plan === 'lifetime';
+export const canOptimize     = (plan: string, credits: number): boolean => isPro(plan) || credits > 0;
+export const hasCredits      = (credits: number): boolean => credits > 0;
