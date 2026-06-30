@@ -333,20 +333,42 @@ const TECH_ALIASES: Array<[string, string]> = [
 ];
 
 /**
+ * Generic/shared suffix or prefix words that, by themselves, are too common
+ * across many distinct technologies to serve as reliable per-word evidence.
+ * Without this exclusion, "Spring Framework" would falsely match a CV that
+ * only mentions "Entity Framework", and "Spring Boot" would falsely match
+ * a CV that only mentions "Bootstrap" — both share one generic word.
+ */
+const GENERIC_TECH_WORDS = new Set([
+  'framework', 'boot', 'server', 'service', 'services', 'platform', 'system',
+  'systems', 'application', 'applications', 'tool', 'tools', 'suite', 'cloud',
+  'studio', 'core', 'stack', 'hub', 'engine', 'kit', 'library', 'libraries',
+  'manager', 'console', 'native', 'router', 'store',
+]);
+
+/** Word-boundary-aware substring check — prevents short aliases like "ts" or
+ * "js" from matching inside unrelated words ("Tests", "Projects", "Reports"
+ * all contain "ts" as a raw substring but have nothing to do with TypeScript). */
+function hasWholeWord(text: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`).test(text);
+}
+
+/**
  * Bidirectional fuzzy keyword matching — 3 rules + alias table.
  *
  * R1 — Direct substring: keyword contained anywhere in cvText
  *      "kafka" in JD → "Apache Kafka" in CV → matched (R1)
  *
- * R2 — Per-word: for each significant word (≥ 4 chars) in a multi-word keyword,
- *      check if that word alone appears in the CV
+ * R2 — Per-word: for each significant, non-generic word (≥ 4 chars) in a
+ *      multi-word keyword, check if that word alone appears in the CV
  *      "Apache Kafka" in JD → "kafka" checked separately → matched if CV has "Kafka"
  *
  * R3 — Bidirectional token: for each keyword part, check every CV token;
  *      if either contains the other → matched
  *      "mongo" ↔ "mongodb", "postgres" ↔ "postgresql", "node.js" ↔ "node"
  *
- * R4 — Alias table: handles k8s↔kubernetes, js↔javascript, aws, etc.
+ * R4 — Alias table (word-boundary aware): handles k8s↔kubernetes, js↔javascript, aws, etc.
  */
 function keywordFoundInCv(keyword: string, cvText: string): boolean {
   const kw = keyword.toLowerCase().trim();
@@ -356,7 +378,7 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
   if (cv.includes(kw)) return true;
 
   const kwParts = kw.split(/\s+/);
-  const sigParts = kwParts.filter((w) => w.length >= 4);
+  const sigParts = kwParts.filter((w) => w.length >= 4 && !GENERIC_TECH_WORDS.has(w));
 
   // R2: each significant word of a multi-word keyword tried independently
   for (const part of sigParts) {
@@ -373,12 +395,12 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
     }
   }
 
-  // R4: alias table (bidirectional)
+  // R4: alias table (bidirectional, word-boundary aware)
   for (const [long, short] of TECH_ALIASES) {
     const kwIsLong = kw === long || kw.includes(long);
     const kwIsShort = kw === short || kw.includes(short);
-    const cvHasLong = cv.includes(long);
-    const cvHasShort = cv.includes(short);
+    const cvHasLong = hasWholeWord(cv, long);
+    const cvHasShort = hasWholeWord(cv, short);
     if ((kwIsLong && cvHasShort) || (kwIsShort && cvHasLong)) return true;
   }
 
