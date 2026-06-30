@@ -468,9 +468,10 @@ export async function optimizeResume(
     ? `
 --- ADDITIONAL USER INPUT ---
 ${selectedKeywords.length > 0 ? `
-The user has confirmed they have experience with these keywords.
-Naturally integrate ALL of them into the resume:
+The user has confirmed they have experience with these keywords:
 ${selectedKeywords.join(', ')}
+You MUST add each one verbatim (exact wording, not a paraphrase or synonym) to the Skills section under the most relevant category. Additionally, naturally reference at least one of them in the Professional Summary or in a relevant experience bullet where it fits contextually.
+Do not rename, abbreviate, or rephrase these terms — the exact text must appear somewhere in the resume so it is unambiguously present.
 ` : ''}${filledTipContexts.length > 0 ? `
 The user has provided additional context for specific improvement areas:
 ${filledTipContexts.map((tc) => `- Tip: "${tc.tip_text}" → User context: "${tc.user_input}"`).join('\n')}
