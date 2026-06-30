@@ -550,9 +550,11 @@ Example: "Senior .NET Developer" or "Backend Engineer"
 
 **2. Keyword Integration**
 - Extract ALL technical keywords, tools, frameworks, and soft skills from the job description.
-- Integrate them naturally throughout the resume — in summary, experience bullets, and skills section.
-- Never stuff keywords unnaturally. Each keyword must appear in context.
-- If a keyword appears in the job description multiple times, treat it as high priority.
+- Of those, integrate ONLY the ones the candidate's ORIGINAL resume already shows evidence of — naturally throughout the resume: summary, experience bullets, and skills section.
+- CRITICAL: Never add a technology, tool, or framework to the resume just because the job description asks for it. If the candidate's original resume has no evidence of a keyword, it MUST be left out of the resume entirely and reported in missing_keywords instead.
+  Example: Job description requires "Spring Boot" but the candidate's original resume only shows ASP.NET/.NET experience → do NOT add "Spring Boot" anywhere in the resume (not in skills, not in bullets). List it in missing_keywords instead.
+- Never stuff keywords unnaturally. Each keyword must appear in context, grounded in the candidate's real experience.
+- If a keyword the candidate genuinely has appears in the job description multiple times, treat it as high priority.
 
 **3. Experience Bullets**
 Every bullet point must follow this structure:
@@ -579,7 +581,7 @@ Rules for bullets:
 
 **5. Skills Section**
 - Group skills by category: Languages | Frameworks | Databases | Tools | Methodologies
-- Include ALL keywords from the job description that the candidate has demonstrated experience with
+- Include ONLY skills the candidate's original resume already demonstrates. Do not add a job-description keyword here unless the candidate has shown that exact skill, tool, or technology somewhere in their original resume.
 - Remove skills that have no evidence in the experience section
 
 **6. Remove These Sections Entirely**
@@ -595,7 +597,8 @@ Rules for bullets:
 - Spell out abbreviations at least once: "Application Programming Interface (API)"
 
 **8. Do Not Fabricate**
-- Never invent experience, technologies, or achievements the candidate hasn't mentioned
+- Never invent experience, technologies, or achievements the candidate hasn't mentioned. This includes the Skills section — every single skill listed must be traceable to the candidate's original resume.
+- Example: if the original resume never mentions Java or Spring Boot, the optimized resume must not mention them either, even though the job description requires them. They belong in missing_keywords, not in the resume.
 - If the user provided additional context in their input, use it as a concrete bullet point in the experience section — not just in the summary
 - Only add metrics if they are explicitly provided by the user or clearly implied by their role
 
