@@ -357,16 +357,22 @@ function hasWholeWord(text: string, term: string): boolean {
 /**
  * Bidirectional fuzzy keyword matching — 3 rules + alias table.
  *
- * R1 — Direct substring: keyword contained anywhere in cvText
- *      "kafka" in JD → "Apache Kafka" in CV → matched (R1)
+ * R1 — Direct substring, word-boundary aware: keyword found as a standalone
+ *      word/phrase in cvText. ("kafka" in JD → "Apache Kafka" in CV → matched.
+ *      Word-boundary prevents "java" from matching inside "javascript".)
  *
- * R2 — Per-word: for each significant, non-generic word (≥ 4 chars) in a
- *      multi-word keyword, check if that word alone appears in the CV
+ * R2 — Per-word, word-boundary aware: for each significant, non-generic word
+ *      (≥ 4 chars) in a multi-word keyword, check if that word alone appears
+ *      as a standalone word in the CV.
  *      "Apache Kafka" in JD → "kafka" checked separately → matched if CV has "Kafka"
  *
- * R3 — Bidirectional token: for each keyword part, check every CV token;
- *      if either contains the other → matched
- *      "mongo" ↔ "mongodb", "postgres" ↔ "postgresql", "node.js" ↔ "node"
+ * R3 — Bidirectional containment, ratio-gated: for each keyword part, check
+ *      every CV token; if either contains the other AND the shorter is at
+ *      least 60% the length of the longer → matched. The ratio gate stops
+ *      short prefixes from matching much longer unrelated words (e.g. "java"
+ *      vs "javascript" — already blocked by R1/R2, but R3 needs its own
+ *      guard since it does containment, not boundary, matching).
+ *      "mongo" ↔ "mongodb" (71%), "postgres" ↔ "postgresql" (80%)
  *
  * R4 — Alias table (word-boundary aware): handles k8s↔kubernetes, js↔javascript, aws, etc.
  */
@@ -374,24 +380,25 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
   const kw = keyword.toLowerCase().trim();
   const cv = cvText.toLowerCase();
 
-  // R1: direct substring
-  if (cv.includes(kw)) return true;
+  // R1: direct substring, word-boundary aware
+  if (hasWholeWord(cv, kw)) return true;
 
   const kwParts = kw.split(/\s+/);
   const sigParts = kwParts.filter((w) => w.length >= 4 && !GENERIC_TECH_WORDS.has(w));
 
-  // R2: each significant word of a multi-word keyword tried independently
+  // R2: each significant word of a multi-word keyword tried independently, word-boundary aware
   for (const part of sigParts) {
-    if (cv.includes(part)) return true;
+    if (hasWholeWord(cv, part)) return true;
   }
 
-  // R3: bidirectional token-level match for each keyword part
+  // R3: bidirectional token-level containment, gated by length ratio
   // Minimum 5 chars to prevent short tokens (e.g. "net" from ".NET") from
   // matching unrelated keywords (e.g. "kubernetes" contains "net").
   const cvTokens = cv.split(/[\s,;.:()\[\]{}\n/\\|+@#$%^&*!?<>'"]+/).filter((t) => t.length >= 5);
   for (const part of sigParts) {
     for (const token of cvTokens) {
-      if (token.includes(part) || part.includes(token)) return true;
+      const [shorter, longer] = part.length <= token.length ? [part, token] : [token, part];
+      if (longer.includes(shorter) && shorter.length / longer.length >= 0.6) return true;
     }
   }
 
