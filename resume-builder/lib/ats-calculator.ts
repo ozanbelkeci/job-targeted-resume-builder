@@ -15,16 +15,29 @@ function isTechnicalKeyword(keyword: string): boolean {
 }
 
 /**
- * Fuzzy match — R1 + R2 from server-side gemini.ts.
- * R1: direct substring ("docker" in "docker-compose")
- * R2: every significant word (≥4 chars) appears in text
- *     ("REST API" → "rest" in "restful" ✓ and "api" in text ✓)
+ * Word-boundary-aware substring check — prevents "java" from matching
+ * inside "javascript" when both appear as separate skills.
+ */
+function hasWholeWord(text: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`).test(text);
+}
+
+/**
+ * Fuzzy match — R1 (word-boundary aware) + R2 (all significant words present).
+ *
+ * R1: whole-word match — "java" chip matches "java" keyword but NOT "javascript"
+ * R2: every significant word (≥4 chars) must appear as a whole word
+ *     ("REST API" → "rest" AND "api" both found as standalone words)
+ *
+ * Note: isTechnicalKeyword is NOT called here — callers decide whether to apply
+ * that gate. This lets short but valid tech terms like "C#" match correctly.
  */
 function keywordMatchesText(keyword: string, text: string): boolean {
   const kw = keyword.toLowerCase().trim();
-  if (text.includes(kw)) return true;
+  if (hasWholeWord(text, kw)) return true;
   const parts = kw.split(/\s+/).filter((w) => w.length >= 4);
-  if (parts.length > 0 && parts.every((w) => text.includes(w))) return true;
+  if (parts.length > 0 && parts.every((w) => hasWholeWord(text, w))) return true;
   return false;
 }
 
@@ -40,15 +53,17 @@ function buildSearchableText(cv: OptimizedCv): string {
  * Live ATS score calculator.
  *
  * Default strategy (reEvaluateAll = false):
- * - originalMatched keywords → stay matched (not re-evaluated).
- *   Prevents false drops when the client-side matcher can't reproduce
- *   the AI's more sophisticated fuzzy logic for text edits.
- * - originalMissing keywords → re-evaluated against current CV content.
+ * - originalMatched keywords → stay matched (not re-evaluated), preventing
+ *   false drops when the client matcher can't reproduce AI fuzzy logic.
+ * - originalMissing keywords → re-evaluated; isTechnicalKeyword gate applied
+ *   to skip generic/numeric words from the missing list.
  *
  * Immediate strategy (reEvaluateAll = true):
- * - ALL keywords re-evaluated against updated CV content.
- * - Used when the user explicitly adds or removes a skill chip, so the
- *   score and keyword lists reflect the actual current state of the CV.
+ * - ALL keywords re-evaluated using keywordMatchesText (word-boundary aware).
+ * - isTechnicalKeyword gate is NOT applied — these keywords were already
+ *   validated by the server, and skipping the gate allows short but valid
+ *   tech terms like "C#" to match correctly via hasWholeWord().
+ * - Used when the user explicitly adds or removes a skill chip.
  */
 export function calculateLiveScore(
   editedCv: OptimizedCv,
@@ -60,14 +75,15 @@ export function calculateLiveScore(
   if (allKeywords.length === 0) return { score: 0, matched: [], missing: [] };
 
   const searchableText = buildSearchableText(editedCv);
-
   const newMatched: string[] = [];
   const newMissing: string[] = [];
 
   if (reEvaluateAll) {
-    // Re-evaluate every keyword (both matched and missing) against updated CV.
+    // Re-evaluate ALL keywords purely via keywordMatchesText (no isTechnicalKeyword gate).
+    // Word-boundary matching prevents "java" falsely matching inside "javascript".
+    // "C#" and other short-but-valid tech terms match correctly via hasWholeWord().
     allKeywords.forEach((keyword) => {
-      if (isTechnicalKeyword(keyword) && keywordMatchesText(keyword, searchableText)) {
+      if (keywordMatchesText(keyword, searchableText)) {
         newMatched.push(keyword);
       } else {
         newMissing.push(keyword);
