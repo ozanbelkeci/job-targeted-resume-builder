@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { optimizeResume } from '@/lib/gemini';
+import { optimizeResume, serializeOptimizedCvToText } from '@/lib/gemini';
 import { checkRateLimit } from '@/lib/rate-limit';
-import type { Optimization, TipContext } from '@/types';
+import type { Optimization, OptimizedCv, TipContext } from '@/types';
 
 interface RefineRequestBody {
   optimizationId?: unknown;
@@ -86,10 +86,18 @@ export async function POST(request: NextRequest) {
     if (resume.target_industry) contextParts.push(`Target industry: ${resume.target_industry as string}`);
     const candidateContext = contextParts.join('\n');
 
+    // Use the currently optimized CV as base so each refinement round builds
+    // on previous improvements (prevents keyword oscillation where adding one
+    // keyword causes a previously matched keyword to reappear as missing).
+    // Fall back to original text only if optimized_cv_json is not yet present.
+    const baseText = optimization.optimized_cv_json
+      ? serializeOptimizedCvToText(optimization.optimized_cv_json as OptimizedCv)
+      : (resume.original_text as string);
+
     let aiResult;
     try {
       aiResult = await optimizeResume(
-        resume.original_text as string,
+        baseText,
         optimization.job_description_raw,
         keywords,
         parsedTipContexts,

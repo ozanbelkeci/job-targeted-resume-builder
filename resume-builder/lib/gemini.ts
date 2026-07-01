@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { GeminiOptimizationResult, OptimizedCv, LinkedInSuggestions, TipContext } from '@/types';
+import type { GeminiOptimizationResult, OptimizedCv, CvSkills, LinkedInSuggestions, TipContext } from '@/types';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -294,6 +294,65 @@ function formatParsedCvForPrompt(cv: ParsedCv): string {
 //  inconsistent fuzzy-matching errors.
 // ─────────────────────────────────────────────
 
+/**
+ * Converts a structured OptimizedCv object back into plain text that
+ * parseRawCvText can parse. Used by the refine endpoint so that each
+ * regeneration round BUILDS ON the previously optimized CV instead of
+ * restarting from the raw original — preventing keyword oscillation.
+ */
+export function serializeOptimizedCvToText(cv: OptimizedCv): string {
+  const lines: string[] = [];
+
+  lines.push(cv.name);
+  if (cv.job_title) lines.push(cv.job_title);
+
+  const contact = [cv.email, cv.phone, cv.linkedin, cv.github, cv.portfolio, cv.website, cv.location]
+    .filter(Boolean).join(' | ');
+  if (contact) lines.push(contact);
+  lines.push('');
+
+  if (cv.summary) {
+    lines.push('PROFESSIONAL SUMMARY');
+    lines.push(cv.summary);
+    lines.push('');
+  }
+
+  if (cv.experience.length > 0) {
+    lines.push('EXPERIENCE');
+    for (const exp of cv.experience) {
+      lines.push(exp.title);
+      lines.push(`${exp.company} | ${exp.duration}`);
+      for (const bullet of exp.bullets) lines.push(`• ${bullet}`);
+      lines.push('');
+    }
+  }
+
+  if (cv.education.length > 0) {
+    lines.push('EDUCATION');
+    for (const edu of cv.education) {
+      lines.push(edu.degree);
+      lines.push(`${edu.school} | ${edu.year}`);
+    }
+    lines.push('');
+  }
+
+  if (cv.skills) {
+    lines.push('SKILLS');
+    if (Array.isArray(cv.skills)) {
+      lines.push(`Skills: ${(cv.skills as string[]).join(', ')}`);
+    } else {
+      const s = cv.skills as CvSkills;
+      if (s.languages?.length)     lines.push(`Languages: ${s.languages.join(', ')}`);
+      if (s.frameworks?.length)    lines.push(`Frameworks: ${s.frameworks.join(', ')}`);
+      if (s.databases?.length)     lines.push(`Databases: ${s.databases.join(', ')}`);
+      if (s.tools?.length)         lines.push(`Tools: ${s.tools.join(', ')}`);
+      if (s.methodologies?.length) lines.push(`Methodologies: ${s.methodologies.join(', ')}`);
+    }
+  }
+
+  return lines.filter((l) => l !== undefined).join('\n');
+}
+
 function extractCvFullText(cv: OptimizedCv): string {
   const skillsText = Array.isArray(cv.skills)
     ? cv.skills.join(' ')
@@ -551,8 +610,9 @@ Example: "Senior .NET Developer" or "Backend Engineer"
 **2. Keyword Integration**
 - Extract ALL technical keywords, tools, frameworks, and soft skills from the job description.
 - Of those, integrate ONLY the ones the candidate's ORIGINAL resume already shows evidence of — naturally throughout the resume: summary, experience bullets, and skills section.
-- CRITICAL: Never add a technology, tool, or framework to the resume just because the job description asks for it. If the candidate's original resume has no evidence of a keyword, it MUST be left out of the resume entirely and reported in missing_keywords instead.
-  Example: Job description requires "Spring Boot" but the candidate's original resume only shows ASP.NET/.NET experience → do NOT add "Spring Boot" anywhere in the resume (not in skills, not in bullets). List it in missing_keywords instead.
+- CRITICAL: Never add a technology, tool, or framework to the resume just because the job description asks for it. If the candidate's original resume has no mention of a keyword anywhere (not in skills, not in bullets, not in summary), it MUST be left out of the resume entirely and reported in missing_keywords instead.
+  Example: Job description requires "Spring Boot" but the candidate's original resume only shows ASP.NET/.NET experience with no mention of Spring or Java → do NOT add "Spring Boot" anywhere in the resume. List it in missing_keywords instead.
+  Counter-example: Job description requires "MongoDB" and the candidate's original resume lists it in the skills/databases section → KEEP it in the optimized resume, even if no bullet point explicitly mentions MongoDB.
 - Never stuff keywords unnaturally. Each keyword must appear in context, grounded in the candidate's real experience.
 - If a keyword the candidate genuinely has appears in the job description multiple times, treat it as high priority.
 
@@ -581,8 +641,8 @@ Rules for bullets:
 
 **5. Skills Section**
 - Group skills by category: Languages | Frameworks | Databases | Tools | Methodologies
-- Include ONLY skills the candidate's original resume already demonstrates. Do not add a job-description keyword here unless the candidate has shown that exact skill, tool, or technology somewhere in their original resume.
-- Remove skills that have no evidence in the experience section
+- Include ONLY skills the candidate's original resume already has. Do not add a job-description keyword unless the candidate has shown that exact skill, tool, or technology anywhere in their original resume (including in the original skills section — a skill listed there is valid evidence even if it does not appear in a bullet point).
+- Do not remove a skill that was present in the candidate's original skills section just because it is not explicitly mentioned in a bullet point. Only remove fabricated skills that were never in the original resume at all.
 
 **6. Remove These Sections Entirely**
 - References section — remove completely, it hurts ATS parsing
