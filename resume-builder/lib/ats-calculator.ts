@@ -39,37 +39,53 @@ function buildSearchableText(cv: OptimizedCv): string {
 /**
  * Live ATS score calculator.
  *
- * Strategy:
- * - originalMatched keywords → always stay matched (never re-evaluated).
- *   Re-evaluating them causes false drops because our simple check ≠ AI fuzzy logic.
- * - originalMissing keywords → checked against current CV content.
- *   If a missing keyword is now found → moves to matched → score goes up.
+ * Default strategy (reEvaluateAll = false):
+ * - originalMatched keywords → stay matched (not re-evaluated).
+ *   Prevents false drops when the client-side matcher can't reproduce
+ *   the AI's more sophisticated fuzzy logic for text edits.
+ * - originalMissing keywords → re-evaluated against current CV content.
  *
- * Result: score only changes when the user adds/removes a keyword
- * that was in the missing list. Editing unrelated text has no effect.
+ * Immediate strategy (reEvaluateAll = true):
+ * - ALL keywords re-evaluated against updated CV content.
+ * - Used when the user explicitly adds or removes a skill chip, so the
+ *   score and keyword lists reflect the actual current state of the CV.
  */
 export function calculateLiveScore(
   editedCv: OptimizedCv,
   originalMatched: string[],
   originalMissing: string[],
+  reEvaluateAll = false,
 ): LiveScoreResult {
   const allKeywords = [...originalMatched, ...originalMissing];
   if (allKeywords.length === 0) return { score: 0, matched: [], missing: [] };
 
   const searchableText = buildSearchableText(editedCv);
 
-  // originalMatched: fixed — don't re-evaluate
-  const newMatched = [...originalMatched];
+  const newMatched: string[] = [];
   const newMissing: string[] = [];
 
-  // Only originalMissing keywords are re-evaluated
-  originalMissing.forEach((keyword) => {
-    if (isTechnicalKeyword(keyword) && keywordMatchesText(keyword, searchableText)) {
-      newMatched.push(keyword);
-    } else {
-      newMissing.push(keyword);
-    }
-  });
+  if (reEvaluateAll) {
+    // Re-evaluate every keyword (both matched and missing) against updated CV.
+    allKeywords.forEach((keyword) => {
+      if (isTechnicalKeyword(keyword) && keywordMatchesText(keyword, searchableText)) {
+        newMatched.push(keyword);
+      } else {
+        newMissing.push(keyword);
+      }
+    });
+  } else {
+    // originalMatched: fixed — don't re-evaluate (prevents false drops for text edits)
+    newMatched.push(...originalMatched);
+
+    // Only originalMissing keywords are re-evaluated
+    originalMissing.forEach((keyword) => {
+      if (isTechnicalKeyword(keyword) && keywordMatchesText(keyword, searchableText)) {
+        newMatched.push(keyword);
+      } else {
+        newMissing.push(keyword);
+      }
+    });
+  }
 
   const score = Math.round((newMatched.length / allKeywords.length) * 100);
   return { score, matched: newMatched, missing: newMissing };

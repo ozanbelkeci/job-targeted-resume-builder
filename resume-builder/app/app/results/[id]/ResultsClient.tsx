@@ -342,7 +342,10 @@ export function ResultsClient({
   }
 
   function recalcScoreNow(cv: OptimizedCv) {
-    const result = calculateLiveScore(cv, originalMatchedRef.current, originalMissingRef.current);
+    // reEvaluateAll=true: skill chips are added/removed explicitly by the user,
+    // so we must re-check every keyword (including originalMatched) against the
+    // updated CV to correctly move removed skills back to missing.
+    const result = calculateLiveScore(cv, originalMatchedRef.current, originalMissingRef.current, true);
     applyScoreResult(result, liveScoreRef.current);
   }
 
