@@ -650,14 +650,16 @@ export async function optimizeResume(
   const hasAdditionalInput =
     selectedKeywords.length > 0 || filledTipContexts.length > 0 || generalContext.trim();
 
-  const keywordUniverseBlock = existingKeywords && existingKeywords.length > 0
-    ? `
---- FIXED KEYWORD SET ---
-The relevant keyword set for this job has already been finalized in a previous round:
-${existingKeywords.join(', ')}
-When computing matched_keywords and missing_keywords, evaluate ONLY this exact list against the updated resume — do not extract a new set from the job description, and do not add or drop keywords from this list. A keyword is matched if it now appears anywhere in the resume; otherwise it is missing. Base tips and ats_score on this same fixed list.
-`
-    : '';
+  // NOTE: We deliberately do NOT expose the existingKeywords list (used by
+  // pinKeywordUniverse below) to the AI in the prompt. Doing so previously
+  // caused the AI to treat every keyword in that list as something to try to
+  // work into the resume — including ones the user never confirmed (e.g.
+  // "ITSM" got fabricated into the resume just because it was listed as part
+  // of the "relevant keyword set", even though only other keywords were
+  // selected). matched_keywords/missing_keywords/ats_score are recomputed
+  // deterministically from existingKeywords after the AI responds, so the AI
+  // never needs to see that list at all — only selectedKeywords (below) are
+  // things the user actually confirmed and asked to be added.
 
   const additionalInputBlock = hasAdditionalInput
     ? `
@@ -861,7 +863,7 @@ ${candidateContext.trim()}
 
 Use this context to better tailor the resume tone, seniority level, and keyword emphasis.
 ` : ''}
-${keywordUniverseBlock}${additionalInputBlock}`;
+${additionalInputBlock}`;
 
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
