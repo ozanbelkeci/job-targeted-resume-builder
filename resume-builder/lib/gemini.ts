@@ -389,6 +389,7 @@ const TECH_ALIASES: Array<[string, string]> = [
   ['react.js', 'react'],
   ['next.js', 'next'],
   ['vue.js', 'vue'],
+  ['restful', 'rest'],
 ];
 
 /**
@@ -554,20 +555,44 @@ function rescueSkillsFromOriginal(
 
   if (rescued.length === 0) return result;
 
-  const skills = result.optimized_cv.skills;
-  if (Array.isArray(skills)) {
-    for (const kw of rescued) if (!skills.includes(kw)) skills.push(kw);
-  } else {
-    const s = skills as CvSkills;
-    s.tools = s.tools ?? [];
-    for (const kw of rescued) if (!s.tools.includes(kw)) s.tools.push(kw);
-  }
+  injectIntoSkills(result.optimized_cv.skills, rescued);
 
   return {
     ...result,
     matched_keywords: dedupKeywords(result.matched_keywords.concat(rescued)),
     missing_keywords: stillMissing,
   };
+}
+
+/** Appends keywords to a resume's skills section (flat list or categorized object), in place. */
+function injectIntoSkills(skills: CvSkills | string[], keywords: string[]): void {
+  if (Array.isArray(skills)) {
+    for (const kw of keywords) if (!skills.includes(kw)) skills.push(kw);
+  } else {
+    skills.tools = skills.tools ?? [];
+    for (const kw of keywords) if (!skills.tools.includes(kw)) skills.tools.push(kw);
+  }
+}
+
+/**
+ * Guarantees that keywords the user has explicitly confirmed they have
+ * (checked in the "Missing Keywords" UI before regenerating) end up in the
+ * resume, instead of relying solely on the AI following the "add verbatim"
+ * instruction — which it does not always do on the first try. Without this,
+ * a user could select the same keyword and regenerate multiple times before
+ * it actually appears (and gets counted as matched).
+ */
+function ensureSelectedKeywordsPresent(
+  result: GeminiOptimizationResult,
+  selectedKeywords: string[],
+): GeminiOptimizationResult {
+  if (selectedKeywords.length === 0) return result;
+  const cvText = extractCvFullText(result.optimized_cv);
+  const stillAbsent = selectedKeywords.filter((kw) => !keywordFoundInCv(kw, cvText));
+  if (stillAbsent.length === 0) return result;
+
+  injectIntoSkills(result.optimized_cv.skills, stillAbsent);
+  return result;
 }
 
 /**
@@ -856,6 +881,10 @@ ${keywordUniverseBlock}${additionalInputBlock}`;
   // Rescue skills that existed in the ORIGINAL resume but that the AI dropped
   // while rewriting the CV — re-inject them so "matched" reflects reality.
   result = rescueSkillsFromOriginal(result, structuredCvText);
+
+  // Guarantee user-confirmed keywords land in the resume this round, rather
+  // than depending on the AI to comply with the "add verbatim" instruction.
+  result = ensureSelectedKeywordsPresent(result, selectedKeywords);
 
   if (existingKeywords && existingKeywords.length > 0) {
     // Refine round: keep the keyword universe fixed instead of trusting
