@@ -16,7 +16,7 @@ Temel akış:
 4. AI (GPT-4o-mini) CV'yi o ilana göre optimize eder (2 adımlı: parse → optimize)
 5. ATS uyum skoru + keyword analizi gösterilir
 6. Kullanıcı CV'yi inline olarak düzenler, ATS skoru anlık güncellenir
-7. Seçili template (Classic / Modern / Minimal) + renk paletiyle PDF indirilir
+7. Seçili template (Classic / Modern / Minimal / Professional) + renk paletiyle PDF indirilir
 8. Pro kullanıcılar Cover Letter ve LinkedIn Optimizer özelliklerini kullanır
 
 ---
@@ -27,11 +27,11 @@ Temel akış:
 - **Styling:** Tailwind CSS + shadcn/ui
 - **Database + Auth:** Supabase
 - **AI:** OpenAI GPT-4o-mini (`lib/gemini.ts` — dosya adı eski, içerik OpenAI)
-- **PDF Export:** @react-pdf/renderer + Roboto font (jsDelivr CDN — Türkçe karakter desteği)
+- **PDF Export:** @react-pdf/renderer — Classic/Modern/Minimal: Roboto (jsDelivr CDN, Türkçe karakter desteği); Professional: Lora (self-hosted `public/fonts/`, merged latin+latin-ext için Türkçe karakter desteği)
 - **PDF Import:** pdf-parse v1.1.1 (CJS, `serverComponentsExternalPackages`'da)
 - **Drag & Drop:** @dnd-kit/core + @dnd-kit/sortable (bullet reordering)
 - **Debounce:** lodash.debounce (inline edit score recalc)
-- **Ödeme:** Paddle (Türkiye uyumlu MOR) — henüz entegre edilmedi
+- **Ödeme:** Polar (`@polar-sh/sdk`) — Türkiye uyumlu MOR, Paddle'dan taşındı, tam entegre
 - **Deploy:** Vercel
 
 ---
@@ -44,9 +44,9 @@ Temel akış:
 - TODO / FIXME yorum bırakma
 - Hardcode fiyat veya limit yazma → `lib/constants/index.ts` kullan
 - Stripe kullanma → Türkiye'de çalışmıyor
-- URL scraping → kaldırıldı, iş ilanı sadece metin olarak girilir
+- URL scraping'i UI'a bağlama → `lib/url-scraper.ts` + `/api/scrape-url` kodda duruyor ama kullanılmıyor (dead code, silinebilir), iş ilanı sadece metin olarak girilir
 - OpenAI API key'i client tarafında kullanma
-- Paddle webhook'larını imza doğrulamasız işleme
+- Polar webhook'larını imza doğrulamasız işleme
 - Plan kontrolünü client'tan gelen veriye dayandırma
 
 ### Her zaman yap
@@ -55,18 +55,20 @@ Temel akış:
 - Hata mesajlarını kullanıcı dilinde yaz, teknik hata kodu gösterme
 - Plan kontrolünü Supabase'den çekerek server tarafında yap
 - Tüm AI çıktıları İngilizce olsun
-- `lib/plan-guard.ts` helper'larını kullan: `isPro(is_pro)`, `hasCredits(credits)`
+- `lib/plan-guard.ts` helper'larını kullan: `canDownloadPdf(plan)`, `canViewFullCv(plan)`, `canSaveHistory(plan)`, `isPro(plan)`, `canSaveResult(plan, credits)`, `hasCredits(credits)`
 
 ---
 
 ## Plan Yapısı
 
-| Plan | Fiyat | Optimizasyon | Cover Letter | LinkedIn | CV Profili |
-|---|---|---|---|---|---|
-| Free | $0 | 1 hak | ❌ | ❌ | Birden fazla |
-| Starter | $5 tek | 5 hak | ❌ | ❌ | Birden fazla |
-| Pro | $12/ay | Sınırsız | ✅ | ✅ | Sınırsız |
-| Lifetime | $79 tek | Sınırsız | ✅ | ✅ | Sınırsız |
+| Plan | Fiyat | Optimizasyon | Sonuç Kaydı | Cover Letter | LinkedIn | CV Profili |
+|---|---|---|---|---|---|---|
+| Free | $0 | Kredi 0, ama sınırsız dener | ❌ (kaydedilmez, `/app/results/free` önizleme) | ❌ | ❌ | Birden fazla |
+| Starter | $5 tek | 5 hak | ✅ (kredi kaldıkça) | ❌ | ❌ | Birden fazla |
+| Pro | $12/ay | Sınırsız | ✅ | ✅ | ✅ | Sınırsız |
+| Lifetime | $79 tek | Sınırsız | ✅ | ✅ | ✅ | Sınırsız |
+
+**Free kullanıcı akışı:** `canOptimize()` her zaman `true` döner — free kullanıcı da AI çağrısını yapabilir. Ama `canSaveResult(plan, credits)` false olduğu için (plan `'free'` veya kredisi biten `'starter'`) sonuç DB'ye kaydedilmez; `/api/optimize` sonucu doğrudan JSON olarak döner, client `sessionStorage.freeOptimizationResult`'a yazar ve `/app/results/free`'e yönlendirir. Bu sayfada ATS skoru + keyword'ler tam gösterilir ama CV preview kilitli (`LockedCvPreview`, blur), PDF indirme ve Cover Letter/LinkedIn kilitli — "Unlock to Download" → `UpgradeModal`.
 
 ---
 
@@ -74,10 +76,10 @@ Temel akış:
 
 - `auth.users` — Supabase Auth (otomatik)
 - `resumes` — Kayıtlı CV profilleri (`id, user_id, name, original_filename, original_text, is_default, storage_path, target_role_types, experience_level, work_arrangement, target_industry, created_at`)
-- `optimizations` — Optimizasyon geçmişi (`id, user_id, resume_id, job_title, job_company, optimized_cv_json, ats_score, ats_keywords, tips, cover_letter, linkedin_suggestions, created_at`)
-- `user_credits` — Kullanıcı kredisi ve pro durumu (`id, user_id, credits, is_pro, pro_expires_at, updated_at`)
+- `optimizations` — Optimizasyon geçmişi (`id, user_id, resume_id, job_title, job_company, job_description_raw, job_input_type, job_url, optimized_cv_json, ats_score, ats_keywords, tips, cover_letter, linkedin_suggestions, created_at`)
+- `user_credits` — Kullanıcı kredisi, pro ve plan durumu (`id, user_id, credits, is_pro, plan, pro_expires_at, updated_at`)
 
-**Dikkat:** Tablo adı `user_credits`'tir, `user_plans` değil.
+**Dikkat:** Tablo adı `user_credits`'tir, `user_plans` değil. `plan` (`'free'|'starter'|'pro'|'lifetime'`) asıl yetki alanıdır (`plan-guard.ts` bunu okur); `is_pro` boolean hâlâ paralel tutulur ve `pro_expires_at` geçince `credits/check` tarafından otomatik `false`'a çekilir — ikisi Polar webhook'unda birlikte (lockstep) güncellenir.
 
 ### DB Migrations (Supabase SQL Editor'da çalıştırılması gerekiyor)
 ```sql
@@ -92,6 +94,12 @@ ALTER TABLE resumes ADD COLUMN IF NOT EXISTS target_role_types text[];
 ALTER TABLE resumes ADD COLUMN IF NOT EXISTS experience_level text;
 ALTER TABLE resumes ADD COLUMN IF NOT EXISTS work_arrangement text[];
 ALTER TABLE resumes ADD COLUMN IF NOT EXISTS target_industry text;
+
+-- Plan sistemi (Polar entegrasyonu) — zaten uygulanmış, referans için
+ALTER TABLE user_credits ADD COLUMN IF NOT EXISTS plan text DEFAULT 'free';
+ALTER TABLE optimizations ADD COLUMN IF NOT EXISTS job_description_raw text;
+ALTER TABLE optimizations ADD COLUMN IF NOT EXISTS job_input_type text;
+ALTER TABLE optimizations ADD COLUMN IF NOT EXISTS job_url text;
 ```
 
 ---
@@ -105,6 +113,7 @@ ALTER TABLE resumes ADD COLUMN IF NOT EXISTS target_industry text;
 /app/job                       → İş ilanı metni gir (sadece textarea)
 /app/processing                → AI işlem loading animasyonu
 /app/results/[id]              → Tüm sonuçlar + inline editing + template seçici
+/app/results/free              → Free/kredisiz kullanıcı önizlemesi (sessionStorage, kilitli preview)
 /app/results/[id]/cover-letter → Cover letter üret/düzenle/kopyala (Pro)
 /app/results/[id]/linkedin     → LinkedIn Headline/About/Skills önerileri (Pro)
 /dashboard                     → Optimizasyon geçmişi + kullanıcı bilgisi
@@ -115,18 +124,22 @@ ALTER TABLE resumes ADD COLUMN IF NOT EXISTS target_industry text;
 ## API Endpoints
 
 ```
-POST  /api/parse-pdf                    → PDF metni çıkar, resumes tablosuna kaydet (profil context dahil)
-POST  /api/optimize                     → CV + iş ilanı → GPT-4o-mini optimize (kredi düşer)
-POST  /api/refine                       → Seçili keyword'lerle CV'yi yeniden optimize (KREDİ DÜŞMEZ)
-POST  /api/cover-letter                 → Cover letter üret (Pro, kredi düşmez)
-POST  /api/linkedin-optimize            → LinkedIn önerileri üret (Pro, kredi düşmez)
-GET   /api/download-pdf                 → PDF oluştur ve döndür (?id=&template=&color=)
-GET   /api/resumes                      → Kullanıcının kayıtlı CV'lerini listele
+POST   /api/parse-pdf                   → PDF metni çıkar, resumes tablosuna kaydet (profil context dahil)
+POST   /api/optimize                    → CV + iş ilanı → GPT-4o-mini optimize (paid+kredi varsa kaydeder ve kredi düşer; free/krediz ise inline sonuç döner, kaydetmez)
+POST   /api/refine                      → Seçili keyword'lerle CV'yi yeniden optimize (KREDİ DÜŞMEZ)
+DELETE /api/optimizations?id=xxx        → Optimizasyon kaydını sil
+PATCH  /api/optimizations/[id]/update   → Inline edit sonrası CV + skor kaydet
+POST   /api/cover-letter                → Cover letter üret (Pro, kredi düşmez)
+POST   /api/linkedin-optimize           → LinkedIn önerileri üret (Pro, kredi düşmez)
+GET    /api/download-pdf                → PDF oluştur ve döndür (?id=&template=&color=), `canDownloadPdf(plan)` ile korunur
+GET    /api/resumes                     → Kullanıcının kayıtlı CV'lerini listele
 DELETE /api/resumes?id=xxx              → CV sil
-GET   /api/credits/check               → Kredi ve pro durumu
-PATCH /api/optimizations/[id]/update   → Inline edit sonrası CV + skor kaydet
-POST  /api/scrape-url                  → Eski, kullanılmıyor (silinebilir)
-POST  /api/paddle/webhook              → Paddle ödeme webhook (henüz tam entegre değil)
+GET    /api/resumes/[id]/pdf-url        → Orijinal yüklenen PDF için 1 saatlik imzalı Supabase Storage URL'i
+GET    /api/credits/check               → Kredi, is_pro ve plan durumu (yoksa free satırı auto-create eder)
+POST   /api/credits/use                 → 1 kredi düşer (pro değilse); bağımsız endpoint, `/api/optimize` bunu kullanmaz
+POST   /api/scrape-url                  → Dead code — UI'dan çağrılmıyor, silinebilir
+POST   /api/checkout                    → Polar checkout session oluşturur (`{ plan: 'starter'|'pro'|'lifetime' }`)
+POST   /api/polar/webhook               → Polar webhook — order.paid / subscription.active|updated|revoked → user_credits günceller
 ```
 
 ---
@@ -144,7 +157,7 @@ POST  /api/paddle/webhook              → Paddle ödeme webhook (henüz tam ent
 6. **Inline CV Editing** — Summary, skills, bullets, job title, iletişim bilgileri, yeni deneyim ekleme/silme
 7. **Live ATS Score** — Düzenleme yapıldıkça client-side anlık skor güncelleme (debounce 600ms)
 8. **Save Changes** — PATCH endpoint'e kayıt, unsaved changes guard
-9. **Template Seçici** — Classic / Modern / Minimal + 4'er renk paleti, localStorage'a kaydedilir
+9. **Template Seçici** — Classic / Modern / Minimal / Professional + renk paletleri, localStorage'a kaydedilir
 10. **Animated Score Ring** — Skor değiştiğinde animasyonlu sayaç
 
 ---
@@ -179,21 +192,27 @@ calculateLiveScore(editedCv, originalMatched, originalMissing)
 ## CV Template Sistemi
 
 ### Şablonlar (`lib/cv-templates/`)
-| Template | Karakter | Varsayılan Renk |
-|---|---|---|
-| Classic | Kurumsal, serif-style, merkezi header | `#2C2C2C` (Charcoal) |
-| Modern | Sol accent bar (3px), sol hizalı, tech-friendly | `#1E3A5F` (Navy) |
-| Minimal | Büyük isim, bol whitespace, minimal header | `#111111` (Black) |
+| Template | Karakter | Font | Varsayılan Renk |
+|---|---|---|---|
+| Classic | Kurumsal, serif-style, merkezi header | Roboto (CDN) | `#2C2C2C` (Charcoal) |
+| Modern | Sol accent bar (3px), sol hizalı, tech-friendly | Roboto (CDN) | `#1E3A5F` (Navy) |
+| Minimal | Büyük isim, bol whitespace, minimal header | Roboto (CDN) | `#111111` (Black) |
+| Professional | Serif, ATS-optimized, akademik | Lora (self-hosted) | `#000000` (Black) |
 
 ### Renk paletleri (`lib/cv-templates/index.ts`, `COLOR_PALETTES`)
-- Her template için 4 renk seçeneği
+- Classic/Modern/Minimal: 4'er renk seçeneği; Professional: 4 renk (`#000000, #1E3A5F, #6B2737, #2D5016`)
 - Template değişince renk default'a sıfırlanır
 - `localStorage`'a kaydedilir (`preferred-cv-template`, `preferred-cv-color`)
 
+### Fontlar (`lib/cv-templates/fonts.ts`)
+- Roboto: jsDelivr CDN'den yükleniyor (Classic/Modern/Minimal)
+- Lora: self-hosted, `public/fonts/Lora-{Regular,Italic,Bold,BoldItalic}-full.woff` — latin + latin-ext opentype.js ile birleştirilmiş (Türkçe karakter desteği için), sadece Professional template kullanıyor
+- **Not:** `public/fonts/` altında untracked, kodda referans verilmeyen eski ham font dosyaları var (`Lora-wght.ttf`, `lora-latin-*.woff` varyantları) — font birleştirme sürecinden kalan artefaktlar, temizlenebilir
+
 ### PDF download
-`GET /api/download-pdf?id=xxx&template=modern&color=%231E3A5F`
-- Renk ve template query param olarak geçilir
-- `lib/pdf-generator.tsx` → template'e göre ClassicDocument / ModernDocument / MinimalDocument'a yönlendirir
+`GET /api/download-pdf?id=xxx&template=professional&color=%23000000`
+- Renk ve template query param olarak geçilir, `canDownloadPdf(plan)` ile korunur
+- `lib/pdf-generator.tsx` → template'e göre ClassicDocument / ModernDocument / MinimalDocument / ProfessionalDocument'a yönlendirir
 
 ### Web önizleme
 `EditableCvPreview` → `theme: CvTheme` prop alır → `SectionTitle` ve renk uygulaması template'e göre değişir
@@ -269,21 +288,29 @@ resume-builder/
 │   │   ├── upload/page.tsx         → CV seç/yükle + profil context formu (chip selector)
 │   │   ├── job/page.tsx
 │   │   ├── processing/page.tsx
-│   │   └── results/[id]/
-│   │       ├── page.tsx            → Server: veri çek
-│   │       ├── ResultsClient.tsx   → Client: tüm interactive özellikler
-│   │       ├── cover-letter/page.tsx
-│   │       └── linkedin/page.tsx
+│   │   └── results/
+│   │       ├── free/page.tsx       → Free/krediz kullanıcı önizlemesi (sessionStorage)
+│   │       └── [id]/
+│   │           ├── page.tsx            → Server: veri çek
+│   │           ├── ResultsClient.tsx   → Client: tüm interactive özellikler
+│   │           ├── cover-letter/page.tsx
+│   │           └── linkedin/page.tsx
 │   ├── api/
 │   │   ├── optimize/route.ts
 │   │   ├── refine/route.ts
+│   │   ├── optimizations/route.ts              → DELETE, kayıt sil
+│   │   ├── optimizations/[id]/update/route.ts  → PATCH, inline edit kayıt
 │   │   ├── cover-letter/route.ts
 │   │   ├── linkedin-optimize/route.ts
 │   │   ├── parse-pdf/route.ts      → candidateContext alanlarını kabul eder
 │   │   ├── download-pdf/route.ts   → ?template=&color= param destekli
 │   │   ├── resumes/route.ts
-│   │   ├── optimizations/[id]/update/route.ts  → PATCH, inline edit kayıt
-│   │   └── credits/check/route.ts
+│   │   ├── resumes/[id]/pdf-url/route.ts       → İmzalı Storage URL
+│   │   ├── scrape-url/route.ts     → dead code, kullanılmıyor
+│   │   ├── checkout/route.ts       → Polar checkout session
+│   │   ├── polar/webhook/route.ts  → Polar webhook handler
+│   │   ├── credits/check/route.ts
+│   │   └── credits/use/route.ts
 │   └── dashboard/page.tsx
 ├── components/
 │   ├── AtsScoreRing.tsx            → Animasyonlu sayaç (600ms step)
@@ -311,7 +338,8 @@ resume-builder/
 │   │   ├── classic-document.tsx    → @react-pdf Classic PDF
 │   │   ├── modern-document.tsx     → @react-pdf Modern PDF (sol accent bar)
 │   │   ├── minimal-document.tsx    → @react-pdf Minimal PDF (büyük isim, bol boşluk)
-│   │   └── fonts.ts                → registerFonts() — Roboto CDN
+│   │   ├── professional-document.tsx → @react-pdf Professional PDF (serif, Lora)
+│   │   └── fonts.ts                → registerFonts() — Roboto CDN + self-hosted Lora
 │   └── constants/
 │       ├── index.ts
 │       └── ats-config.ts           → GENERIC_WORDS (keyword filtresi)
@@ -334,12 +362,6 @@ Font:       Inter
 
 ## Yapılacaklar (Kalan)
 
-### 🟡 Ödeme Sistemi
-- Paddle entegrasyonu (henüz yapılmadı)
-- Fiyatlandırma sayfasında satın alma flow'u
-- Webhook'ta kredi yükleme + pro aktivasyonu
-- Lifetime plan ($79)
-
 ### 🟡 Küçük İyileştirmeler
 - Dashboard'a kayıtlı CV profili yönetimi (silme, yeniden adlandırma)
 - Optimizasyon geçmişinde sayfalama (şu an hepsi yükleniyor)
@@ -351,7 +373,7 @@ Font:       Inter
 ## Sık Sorulan Sorular
 
 **Neden Stripe yok?**
-Türkiye'de çalışmıyor. Paddle kullanıyoruz.
+Türkiye'de çalışmıyor. Önce Paddle planlanmıştı, şimdi Polar kullanıyoruz (`@polar-sh/sdk`).
 
 **Neden URL scraping yok?**
 LinkedIn, Indeed gibi siteler bot engelliyor. Kullanıcı ilanı kopyalayıp yapıştırıyor.
@@ -369,7 +391,10 @@ Hayır. Sadece metin içeriği `resumes.original_text` alanında tutuluyor.
 İlk başta Google Gemini planlanmıştı, sonra OpenAI'ye geçildi. Dosya adı tarihsel nedenle kaldı.
 
 **PDF'te Türkçe karakterler (İ, ğ, ş) bozuluyor mu?**
-Hayır. Roboto font jsDelivr CDN'den yükleniyor, tam Unicode desteği var. Tüm PDF template'leri Roboto kullanır.
+Hayır. Classic/Modern/Minimal Roboto (jsDelivr CDN) kullanır, tam Unicode desteği var. Professional template Lora kullanır — bu self-hosted olarak `public/fonts/`'a konmuş, çünkü CDN'deki standart Lora dosyası Latin Extended-A (Türkçe karakterler) içermiyordu; latin + latin-ext opentype.js ile birleştirilip yeniden yayınlandı.
+
+**Free kullanıcı optimize edebilir mi, kredisi 0 iken?**
+Evet. `canOptimize()` her zaman true — free kullanıcı AI çağrısını yapar ve sonucu görür, ama `canSaveResult()` false olduğu için sonuç DB'ye kaydedilmez, `/app/results/free` sayfasında sessionStorage üzerinden kilitli önizleme gösterilir (CV preview blur, PDF/Cover Letter/LinkedIn kilitli).
 
 **Skills objesi string[] mi CvSkills objesi mi?**
 Yeni optimizasyonlar kategorili `CvSkills` objesi döndürür. Eski DB kayıtları `string[]` olabilir. `Array.isArray(cv.skills)` ile her yerde kontrol edilir.

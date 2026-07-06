@@ -94,6 +94,16 @@ export async function POST(request: NextRequest) {
       ? serializeOptimizedCvToText(optimization.optimized_cv_json as OptimizedCv)
       : (resume.original_text as string);
 
+    // Keep the keyword universe fixed across regenerate rounds so the score
+    // denominator can't shift just because the AI re-extracted a different
+    // set of keywords from the job description this time.
+    const existingKeywords = optimization.ats_keywords
+      ? [
+          ...(optimization.ats_keywords.matched ?? []),
+          ...(optimization.ats_keywords.missing ?? []),
+        ]
+      : [];
+
     let aiResult;
     try {
       aiResult = await optimizeResume(
@@ -103,6 +113,7 @@ export async function POST(request: NextRequest) {
         parsedTipContexts,
         parsedGeneralContext,
         candidateContext,
+        existingKeywords,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -478,6 +478,17 @@ function keywordFoundInCv(keyword: string, cvText: string): boolean {
  * actually present in the CV (via fuzzy matching) into the matched list,
  * then recalculates the ATS score.
  */
+// Deduplicate a keyword list, case-insensitively, keeping first occurrence.
+function dedupKeywords(list: string[]): string[] {
+  const seen: string[] = [];
+  return list.filter((k) => {
+    const lower = k.toLowerCase();
+    if (seen.indexOf(lower) !== -1) return false;
+    seen.push(lower);
+    return true;
+  });
+}
+
 function correctKeywords(result: GeminiOptimizationResult): GeminiOptimizationResult {
   const cvText = extractCvFullText(result.optimized_cv);
 
@@ -503,22 +514,8 @@ function correctKeywords(result: GeminiOptimizationResult): GeminiOptimizationRe
     }
   }
 
-  const finalMatched = confirmedMatched.concat(rescuedFromMissing);
-  const finalMissing = confirmedMissing.concat(demotedToMissing);
-
-  // Deduplicate (case-insensitive)
-  function dedup(list: string[]): string[] {
-    const seen: string[] = [];
-    return list.filter((k) => {
-      const lower = k.toLowerCase();
-      if (seen.indexOf(lower) !== -1) return false;
-      seen.push(lower);
-      return true;
-    });
-  }
-
-  const dedupedMatched = dedup(finalMatched);
-  const dedupedMissing = dedup(finalMissing);
+  const dedupedMatched = dedupKeywords(confirmedMatched.concat(rescuedFromMissing));
+  const dedupedMissing = dedupKeywords(confirmedMissing.concat(demotedToMissing));
 
   const atsScore = Math.round(
     (dedupedMatched.length / Math.max(dedupedMatched.length + dedupedMissing.length, 1)) * 100,
@@ -528,6 +525,77 @@ function correctKeywords(result: GeminiOptimizationResult): GeminiOptimizationRe
     ...result,
     matched_keywords: dedupedMatched,
     missing_keywords: dedupedMissing,
+    ats_score: atsScore,
+  };
+}
+
+/**
+ * Rescues skills that existed in the candidate's ORIGINAL resume but that the
+ * AI silently dropped while rewriting the CV (violating rule 5 — skills present
+ * in the original resume must be kept even if unused in a bullet). Unlike
+ * correctKeywords(), which only re-labels keywords already present in the
+ * optimized output, this also injects the missing text back into the resume's
+ * skills section so the reported "matched" status matches what the exported
+ * resume actually contains.
+ */
+function rescueSkillsFromOriginal(
+  result: GeminiOptimizationResult,
+  originalCvText: string,
+): GeminiOptimizationResult {
+  const rescued: string[] = [];
+  const stillMissing: string[] = [];
+  for (const kw of result.missing_keywords) {
+    if (keywordFoundInCv(kw, originalCvText)) {
+      rescued.push(kw);
+    } else {
+      stillMissing.push(kw);
+    }
+  }
+
+  if (rescued.length === 0) return result;
+
+  const skills = result.optimized_cv.skills;
+  if (Array.isArray(skills)) {
+    for (const kw of rescued) if (!skills.includes(kw)) skills.push(kw);
+  } else {
+    const s = skills as CvSkills;
+    s.tools = s.tools ?? [];
+    for (const kw of rescued) if (!s.tools.includes(kw)) s.tools.push(kw);
+  }
+
+  return {
+    ...result,
+    matched_keywords: dedupKeywords(result.matched_keywords.concat(rescued)),
+    missing_keywords: stillMissing,
+  };
+}
+
+/**
+ * Re-derives matched/missing/ats_score from a FIXED keyword universe instead
+ * of whatever set the AI happened to extract this round. Used on refine so
+ * that regenerating never changes the keyword denominator — the score can
+ * only move because a keyword's presence in the CV changed, never because
+ * the AI's fresh JD extraction found a different number of keywords than the
+ * previous round did (the "score drops on regenerate" oscillation bug).
+ */
+function pinKeywordUniverse(
+  result: GeminiOptimizationResult,
+  keywordUniverse: string[],
+): GeminiOptimizationResult {
+  const cvText = extractCvFullText(result.optimized_cv);
+  const matched: string[] = [];
+  const missing: string[] = [];
+  for (const kw of dedupKeywords(keywordUniverse)) {
+    if (keywordFoundInCv(kw, cvText)) matched.push(kw);
+    else missing.push(kw);
+  }
+
+  const atsScore = Math.round((matched.length / Math.max(matched.length + missing.length, 1)) * 100);
+
+  return {
+    ...result,
+    matched_keywords: matched,
+    missing_keywords: missing,
     ats_score: atsScore,
   };
 }
@@ -543,6 +611,11 @@ export async function optimizeResume(
   tipContexts: TipContext[] = [],
   generalContext: string = '',
   candidateContext: string = '',
+  // When set (refine flow), matched_keywords/missing_keywords/ats_score are
+  // recomputed against this exact list instead of whatever the AI freshly
+  // extracts from the job description — keeps the score denominator stable
+  // across regenerate rounds. Pass the previous round's matched+missing keywords.
+  existingKeywords?: string[],
 ): Promise<GeminiOptimizationResult> {
   const parsedCv = await parseRawCvText(rawCvText);
   const structuredCvText = formatParsedCvForPrompt(parsedCv);
@@ -551,6 +624,15 @@ export async function optimizeResume(
 
   const hasAdditionalInput =
     selectedKeywords.length > 0 || filledTipContexts.length > 0 || generalContext.trim();
+
+  const keywordUniverseBlock = existingKeywords && existingKeywords.length > 0
+    ? `
+--- FIXED KEYWORD SET ---
+The relevant keyword set for this job has already been finalized in a previous round:
+${existingKeywords.join(', ')}
+When computing matched_keywords and missing_keywords, evaluate ONLY this exact list against the updated resume — do not extract a new set from the job description, and do not add or drop keywords from this list. A keyword is matched if it now appears anywhere in the resume; otherwise it is missing. Base tips and ats_score on this same fixed list.
+`
+    : '';
 
   const additionalInputBlock = hasAdditionalInput
     ? `
@@ -754,7 +836,7 @@ ${candidateContext.trim()}
 
 Use this context to better tailor the resume tone, seniority level, and keyword emphasis.
 ` : ''}
-${additionalInputBlock}`;
+${keywordUniverseBlock}${additionalInputBlock}`;
 
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
@@ -764,14 +846,25 @@ ${additionalInputBlock}`;
   });
 
   const text = response.choices[0].message.content ?? '';
-  const result = JSON.parse(text) as GeminiOptimizationResult;
+  let result = JSON.parse(text) as GeminiOptimizationResult;
 
   // Always sort the final output by start date — catches any remaining reordering
   if (result.optimized_cv?.experience) {
     result.optimized_cv.experience = sortByDate(result.optimized_cv.experience);
   }
 
-  // Programmatic keyword correction: fix AI fuzzy-matching errors (e.g., Mongo↔MongoDB)
+  // Rescue skills that existed in the ORIGINAL resume but that the AI dropped
+  // while rewriting the CV — re-inject them so "matched" reflects reality.
+  result = rescueSkillsFromOriginal(result, structuredCvText);
+
+  if (existingKeywords && existingKeywords.length > 0) {
+    // Refine round: keep the keyword universe fixed instead of trusting
+    // whatever set the AI extracted from the JD this time.
+    return pinKeywordUniverse(result, existingKeywords);
+  }
+
+  // Initial optimize: programmatic keyword correction fixes AI fuzzy-matching
+  // errors (e.g., Mongo↔MongoDB) against whatever set the AI itself extracted.
   return correctKeywords(result);
 }
 
